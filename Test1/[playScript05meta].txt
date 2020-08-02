@@ -1,1 +1,0 @@
-RewindDepth	target	bestLength_thisBatch	totalGamesPlayed

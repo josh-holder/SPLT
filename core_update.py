@@ -1,5 +1,5 @@
 """
-coreupdate.py
+core_update.py
 
 Simulates a game of SPL-T, one move at a time. Intended to be called from a wrapper script (see playScriptXX examples)
 
@@ -217,6 +217,7 @@ def makeMove(gameBoard,chosenBox):
 
 	global verbose
 	
+	tot_start = time.time()
 	# -------- 1. Try to execute the split: -------------------------------------------------------------------------------------
 	#
 	if verbose: 
@@ -251,7 +252,6 @@ def makeMove(gameBoard,chosenBox):
 	
 	#We've already scanned and found which blocks would be clusters, so we just read them off from the clusters variable
 	pointsToAdd = len(gameBoard.splitRecord)+1
-	
 
 	for index in gameBoard.clusters[chosenBox]:
 		gameBoard.box[index].points = pointsToAdd
@@ -686,12 +686,22 @@ def makeMove(gameBoard,chosenBox):
 			if box.y < row <= box.y + box.height:
 				gameBoard.boxesInRow[row].append(boxIndex)
 	
+	end = time.time()
+	tot_time = end-tot_start
+
+	clust_start = time.time()
 	gameBoard.clusters = weighting.findCluster(gameBoard)
+	end = time.time()
+	clust_time = end-clust_start
+	weight_start = time.time()
 	gameBoard.weights = weighting.findWeights(gameBoard)
-
-
+	end = time.time()
+	weight_time = end-weight_start
+	
 	#end = time.time()
-	#print("Time to make move: " + str(end-start))
+	#print("Time to make move: " + str(end-start)
+	# )
+	return tot_time, clust_time, weight_time
 
 if __name__ == "__main__":
 	gameBoard = Board()

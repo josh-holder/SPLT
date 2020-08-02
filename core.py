@@ -189,8 +189,8 @@ def drawScreen(gameBoard):
 	updateScreenBuffer(gameBoard)
 	for jj in range((gameBoard.height*2)+1):
 		for ii in range((gameBoard.width*2)+1):
-			print(gameBoard.screenBuffer[jj][ii])
-		print('\n')	
+			print(gameBoard.screenBuffer[jj][ii], end = ' ')
+		print(' ')	
 
 
 # Evolves an input gameBoard forward, given that you are choosing to split chosenBox on that gameBoard

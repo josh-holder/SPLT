@@ -2,6 +2,7 @@ import math
 import copy
 import time
 from collections import defaultdict
+import core_update as core
 
 weightverbose = 0
 timingInfo = 0
@@ -36,12 +37,71 @@ def findCluster(gameBoard):
 			#iterate through every box in the new list of boxes to see if it is in the upper left corner of a cluster
 			for clusterBoxIndex, clusterBox in enumerate(newgameBoard.box):
 				if clusterBox == lastCreatedBox:
-					
-
 					clusterMembers = set()
 					clusterMembers.add(clusterBoxIndex)
 
 					for otherBoxIndex, otherBox in enumerate(newgameBoard.box):
+						if otherBox == lastCreatedBox:
+
+							# If otherbox is beside box
+							if otherBox.x==(clusterBox.x+clusterBox.width) and otherBox.y==clusterBox.y:	clusterMembers.add(otherBoxIndex)
+							# If otherbox is diagonal to box
+							elif otherBox.x==(clusterBox.x+clusterBox.width) and otherBox.y==(clusterBox.y+clusterBox.height):	clusterMembers.add(otherBoxIndex)
+							# If otherbox is below box
+							elif otherBox.x==clusterBox.x and otherBox.y==(clusterBox.y+clusterBox.height):	clusterMembers.add(otherBoxIndex)
+					
+					#This catches groups of 6 and 8 boxes as multiple groups of 4 boxes, which just doublecounts boxes but does not negatively impact accuracy
+					if len(clusterMembers) == 4:
+						newClusters = newClusters.union(clusterMembers)
+			clusters.append(newClusters)
+		
+		#otherwise, keep the old.
+		else:
+			clusters.append(set())
+			
+		
+	if timingInfo: 
+		end = time.time()
+		print("Time to find clusters for turn "+str(len(gameBoard.splitRecord))+": "+str(end-start))
+	return clusters
+
+def findClusterNew(gameBoard):
+	#Given a gameBoard, finds the clusters that would be caused by a split of any box in the board
+	#INPUT: gameBoard, the gameboard object
+	#affectedColumns, a list of boolean values that determines if boxes in a given column need to have their clusters updated
+	#OUTPUT: clusters, a list of sets. Each inner list contains the indices of boxes that are involved in a cluster when a given box is split.
+	#The inner list is an empty list when splitting a given box results in no cluster
+
+	if timingInfo: start = time.time()
+	clusters = []
+
+	#iterates through every box in the board and splits them
+	for boxToBeCheckedIndex, boxToBeChecked in enumerate(gameBoard.box):
+		#only operates updates boxes that could have had their splits affected
+		
+		if boxToBeChecked.splitPossible(gameBoard.splitAction):
+			newClusters = set()
+
+			#create new list with candidate split boxes
+			newBoxes = copy.deepcopy(gameBoard.box)
+			
+			#add new boxes
+			if gameBoard.splitAction == '-':
+				newBoxes[boxToBeCheckedIndex].modify(boxToBeChecked.x, boxToBeChecked.y+boxToBeChecked.height//2, boxToBeChecked.width, boxToBeChecked.height//2, 0)
+				newBoxes.append(core.Box(boxToBeChecked.x, boxToBeChecked.y+boxToBeChecked.height//2, boxToBeChecked.width, boxToBeChecked.height//2, 0))
+			else:
+				newBoxes[boxToBeCheckedIndex].modify(boxToBeChecked.x+boxToBeChecked.width//2, boxToBeChecked.y, boxToBeChecked.width//2, boxToBeChecked.height, 0)
+				newBoxes.append(core.Box(boxToBeChecked.x+boxToBeChecked.width//2, boxToBeChecked.y, boxToBeChecked.width//2, boxToBeChecked.height, 0))
+
+			lastCreatedBox=newBoxes[-1]
+
+			#iterate through every box in the new list of boxes to see if it is in the upper left corner of a cluster
+			for clusterBoxIndex, clusterBox in enumerate(newBoxes):
+				if clusterBox == lastCreatedBox:
+					clusterMembers = set()
+					clusterMembers.add(clusterBoxIndex)
+
+					for otherBoxIndex, otherBox in enumerate(newBoxes):
 						if otherBox == lastCreatedBox:
 
 							# If otherbox is beside box
@@ -460,9 +520,7 @@ def findWeights(gameBoard):
 
 			weight += weightToAdd
 
-
 			weights.append(weight)
-
 
 		else:
 			weights.append(0)
@@ -478,9 +536,6 @@ def findWeights(gameBoard):
 		if not box.splitPossible(gameBoard.splitAction):
 			weights[boxind] = 0
 	
-
-		
-
 	if weightverbose: 
 		print("Final weights vector:") 
 		print(weights)
@@ -489,3 +544,8 @@ def findWeights(gameBoard):
 		end = time.time()
 		print("Time to calculate weights until fall for turn "+str(len(gameBoard.splitRecord))+": "+str(end-start))
 	return weights
+
+if __name__ == '__main__':
+	gb = core.gameBoard
+	core.makeMove(gb,0)
+	core.makeMove(gb,0)
