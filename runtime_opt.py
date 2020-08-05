@@ -11,7 +11,7 @@ import time
 def TimeCalc():
 
 	i = 0
-	num_games = 25
+	num_games = 100
 
 	total_pre_move_time = 0
 	total_move_time = 0

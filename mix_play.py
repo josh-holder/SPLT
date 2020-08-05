@@ -29,7 +29,7 @@ def PlayGameToEnd(random_threshhold):
 			# print('chose random split in '+str(end-start))
 			#weighted random
 			# start = time.time()
-			add_factor = (random_threshhold-len(sequence))*10
+			add_factor = (random_threshhold-len(sequence))*5
 			for i, weight in enumerate(gameBoard.weights):
 				if weight != 0:
 					gameBoard.weights[i] = weight + add_factor
@@ -81,4 +81,4 @@ def runSim(random_threshhold):
 		game_num += 1
 
 if __name__ == "__main__":
-	runSim(100)
+	runSim(200)

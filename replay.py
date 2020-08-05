@@ -101,7 +101,8 @@ def replaySequence(graphicalDisplay,sequence):
 			return gameBoard.score,gameBoard.splitRecord
 			break
 
-		nextMove=sequence[len(gameBoard.splitRecord)]
+		try: nextMove=sequence[len(gameBoard.splitRecord)]
+		except IndexError: pass
 		
 		print("Move {0} of {1}: Split box #{2}".format(len(gameBoard.splitRecord),len(sequence),nextMove))
 		

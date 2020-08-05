@@ -12,12 +12,183 @@ VERTICAL='|'
 def findCluster(gameBoard):
 	#Given a gameBoard, finds the clusters that would be caused by a split of any box in the board
 	#INPUT: gameBoard, the gameboard object
-	#affectedColumns, a list of boolean values that determines if boxes in a given column need to have their clusters updated
+	#OUTPUT: clusters, a list of sets. Each inner set contains the indices of boxes that are involved in a cluster when a given box is split.
+	#The inner list is an empty list when splitting a given box results in no cluster
+
+	if timingInfo: start = time.time()
+	clusters = []
+	
+	for boxToBeCheckedIndex, boxToBeChecked in enumerate(gameBoard.box):
+		newClusters = set()
+		if boxToBeChecked.splitPossible(gameBoard.splitAction):
+			#Generate clusters for horizontal case
+			if gameBoard.splitAction == HORIZONTAL:
+				#DETERMINE WHAT CLUSTERS HAVE BEEN FORMED
+				#index 0 contains box index of bottom box, index 1 is the top
+				leftBoxes = [-1,-1] #primary clusters
+				rightBoxes = [-1,-1] #primary clusters
+				topBoxes = [-1,-1,-1] #secondary clusters
+				bottomBoxes = [-1,-1,-1] #secondary clusters
+				for otherBoxIndex, otherBox in enumerate(gameBoard.box):
+					if (otherBox.height == boxToBeChecked.height//2 and otherBox.width == boxToBeChecked.width \
+					and otherBox.points == 0):
+						if (otherBox.x == boxToBeChecked.x + boxToBeChecked.width):
+							if (otherBox.y == boxToBeChecked.y - boxToBeChecked.height//2):
+								topBoxes[2] = otherBoxIndex #top right
+							elif (otherBox.y == boxToBeChecked.y): 
+								rightBoxes[1] = otherBoxIndex #right top
+							elif (otherBox.y == boxToBeChecked.y + boxToBeChecked.height//2):
+								rightBoxes[0] = otherBoxIndex #right bottom
+							elif (otherBox.y == boxToBeChecked.y + boxToBeChecked.height):
+								bottomBoxes[2] = otherBoxIndex #bottom right
+
+						elif (otherBox.x == boxToBeChecked.x - boxToBeChecked.width):
+							if (otherBox.y == boxToBeChecked.y - boxToBeChecked.height//2):
+								topBoxes[0] = otherBoxIndex #top left
+							elif (otherBox.y == boxToBeChecked.y):
+								leftBoxes[1] = otherBoxIndex #left top
+							elif (otherBox.y == boxToBeChecked.y + boxToBeChecked.height//2):
+								leftBoxes[0] = otherBoxIndex #left bottom
+							elif (otherBox.y == boxToBeChecked.y + boxToBeChecked.height):
+								bottomBoxes[0] = otherBoxIndex #bottom left
+						
+						elif (otherBox.x == boxToBeChecked.x):
+							if (otherBox.y == boxToBeChecked.y - boxToBeChecked.height//2):
+								topBoxes[1] = otherBoxIndex #top middle
+							elif (otherBox.y == boxToBeChecked.y + boxToBeChecked.height):
+								bottomBoxes[1] = otherBoxIndex #bottom middle
+						
+						else:
+							pass
+
+				#If right cluster formed
+				if (rightBoxes[0] != -1 and rightBoxes[1] != -1):
+					newClusters.add(boxToBeCheckedIndex)
+					newClusters.add(len(gameBoard.box))
+					newClusters.update(rightBoxes)
+				
+				#If bottom right cluster formed
+				if (rightBoxes[0] != -1 and bottomBoxes[2] != -1 and bottomBoxes[1] != -1):
+					newClusters.add(len(gameBoard.box))
+					newClusters.add(rightBoxes[0])
+					newClusters.update(bottomBoxes[1:3])
+
+				#If bottom left cluster formed
+				if (bottomBoxes[1] != -1 and bottomBoxes[0] != -1 and leftBoxes[0] != -1):
+					newClusters.add(len(gameBoard.box))
+					newClusters.add(leftBoxes[0])
+					newClusters.update(bottomBoxes[0:2])
+				
+				#If left cluster formed
+				if (leftBoxes[0] != -1 and leftBoxes[1] != -1):
+					newClusters.add(boxToBeCheckedIndex)
+					newClusters.add(len(gameBoard.box))
+					newClusters.update(leftBoxes)
+
+				# If top left cluster formed
+				if (leftBoxes[1] != -1 and topBoxes[0] != -1 and topBoxes[1] != -1):
+					newClusters.add(boxToBeCheckedIndex)
+					newClusters.add(leftBoxes[1])
+					newClusters.update(topBoxes[0:2])
+				
+				#If top right cluster formed
+				if (topBoxes[1] != -1 and topBoxes[2] != -1 and rightBoxes[1] != -1):
+					newClusters.add(boxToBeCheckedIndex)
+					newClusters.add(rightBoxes[1])
+					newClusters.update(topBoxes[1:3])
+
+			#Generate clusters for vertical case
+			else:
+				#DETERMINE WHAT CLUSTERS HAVE BEEN FORMED
+				#index 0 contains box index of left box, index 1 is the right
+				topBoxes = [-1,-1] #primary clusters
+				bottomBoxes = [-1,-1] #primary clusters
+				leftBoxes = [-1,-1,-1] #secondary clusters
+				rightBoxes = [-1,-1,-1] #secondary clusters
+				for otherBoxIndex, otherBox in enumerate(gameBoard.box):
+					if (otherBox.height == boxToBeChecked.height and otherBox.width == boxToBeChecked.width//2 \
+					and otherBox.points == 0):
+						if (otherBox.y == boxToBeChecked.y - boxToBeChecked.height):
+							if (otherBox.x == boxToBeChecked.x - boxToBeChecked.width//2):
+								leftBoxes[2] = otherBoxIndex #left top
+							elif (otherBox.x == boxToBeChecked.x): 
+								topBoxes[0] = otherBoxIndex #top left
+							elif (otherBox.x == boxToBeChecked.x + boxToBeChecked.width//2):
+								topBoxes[1] = otherBoxIndex #top right
+							elif (otherBox.x == boxToBeChecked.x + boxToBeChecked.width):
+								rightBoxes[2] = otherBoxIndex #right top
+
+						elif (otherBox.y == boxToBeChecked.y + boxToBeChecked.height):
+							if (otherBox.x == boxToBeChecked.x - boxToBeChecked.width//2):
+								leftBoxes[0] = otherBoxIndex #left bottom
+							elif (otherBox.x == boxToBeChecked.x):
+								bottomBoxes[0] = otherBoxIndex #bottom left
+							elif (otherBox.x == boxToBeChecked.x + boxToBeChecked.width//2):
+								bottomBoxes[1] = otherBoxIndex #bottom right
+							elif (otherBox.x == boxToBeChecked.x + boxToBeChecked.width):
+								rightBoxes[0] = otherBoxIndex #right bottom
+						
+						elif (otherBox.y == boxToBeChecked.y):
+							if (otherBox.x == boxToBeChecked.x - boxToBeChecked.width//2):
+								leftBoxes[1] = otherBoxIndex #left middle
+							elif (otherBox.x == boxToBeChecked.x + boxToBeChecked.width):
+								rightBoxes[1] = otherBoxIndex #right middle
+						
+						else:
+							pass
+
+				#If top cluster formed
+				if (topBoxes[0] != -1 and topBoxes[1] != -1):
+					newClusters.add(boxToBeCheckedIndex)
+					newClusters.add(len(gameBoard.box))
+					newClusters.update(topBoxes)
+				
+				#If top right cluster formed
+				if (topBoxes[1] != -1 and rightBoxes[2] != -1 and rightBoxes[1] != -1):
+					newClusters.add(len(gameBoard.box))
+					newClusters.add(topBoxes[1])
+					newClusters.update(rightBoxes[1:3])
+				
+				#If bottom right cluster formed
+				if (rightBoxes[1] != -1 and rightBoxes[0] != -1 and bottomBoxes[1] != -1):
+					newClusters.add(len(gameBoard.box))
+					newClusters.add(bottomBoxes[1])
+					newClusters.update(rightBoxes[0:2])
+				
+				#If bottom cluster formed
+				if (bottomBoxes[0] != -1 and bottomBoxes[1] != -1):
+					newClusters.add(boxToBeCheckedIndex)
+					newClusters.add(len(gameBoard.box))
+					newClusters.update(bottomBoxes)
+				
+				#If bottom left cluster formed
+				if (bottomBoxes[0] != -1 and leftBoxes[0] != -1 and leftBoxes[1] != -1):
+					newClusters.add(boxToBeCheckedIndex)
+					newClusters.add(bottomBoxes[0])
+					newClusters.update(leftBoxes[0:2])
+				
+				#If top left cluster formed
+				if (leftBoxes[1] != -1 and leftBoxes[2] != -1 and topBoxes[0] != -1):
+					newClusters.add(boxToBeCheckedIndex)
+					newClusters.add(topBoxes[0])
+					newClusters.update(leftBoxes[1:3])
+				
+		clusters.append(newClusters)
+		
+	if timingInfo: 
+		end = time.time()
+		print("Time to find clusters for turn "+str(len(gameBoard.splitRecord))+": "+str(end-start))
+	return clusters
+
+def findClusterOld(gameBoard):
+	#Given a gameBoard, finds the clusters that would be caused by a split of any box in the board
+	#INPUT: gameBoard, the gameboard object
 	#OUTPUT: clusters, a list of sets. Each inner list contains the indices of boxes that are involved in a cluster when a given box is split.
 	#The inner list is an empty list when splitting a given box results in no cluster
 
 	if timingInfo: start = time.time()
 	clusters = []
+
 	#iterates through every box in the board and splits them
 	for boxToBeCheckedIndex, boxToBeChecked in enumerate(gameBoard.box):
 		#only operates updates boxes that could have had their splits affected
@@ -491,12 +662,8 @@ def findWeights(gameBoard):
 if __name__ == '__main__':
 	gb = core.Board()
 	core.makeMove(gb,0)
-	print('RELEVANT 1')
-	findCluster(gb)
-	findClusterNew(gb)
-	print('END RELEVANT 1')
 	core.makeMove(gb,0)
-	print('RELEVANT 2')
-	findCluster(gb)
+	core.makeMove(gb,0)
+	core.makeMove(gb,0)
+	core.makeMove(gb,1)
 	findClusterNew(gb)
-	print('END RELEVANT 2')

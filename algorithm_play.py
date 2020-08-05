@@ -28,7 +28,7 @@ if __name__ == "__main__":
 		
 
 		bestSplit = max(range(len(gameBoard.weights)), key=gameBoard.weights.__getitem__)
-		print(len(gameBoard.splitRecord))
+		print("Split " + str(len(gameBoard.splitRecord)), end='\r')
 
 		sequence.append(bestSplit)
 

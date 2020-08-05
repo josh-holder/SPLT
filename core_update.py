@@ -56,6 +56,7 @@ class Board(object): # Board class represents the gameboard during play.
 		#for each box, weights contains a number relating to the weight of the box
 		self.weights = [1]
 
+		#Counts boxes in row to be used in algorithm for calculating boxes below
 		self.boxesInRow = {}
 		for row in range(1,self.height+1):
 			self.boxesInRow[row] = [0]
@@ -685,6 +686,7 @@ def makeMove(gameBoard,chosenBox):
 		for row in range(1,gameBoard.height+1):
 			if box.y < row <= box.y + box.height:
 				gameBoard.boxesInRow[row].append(boxIndex)
+		
 	
 	end = time.time()
 	tot_time = end-tot_start
