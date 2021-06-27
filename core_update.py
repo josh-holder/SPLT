@@ -213,7 +213,7 @@ def drawScreen(gameBoard):
 
 # Evolves an input gameBoard forward, given that you are choosing to split chosenBox on that gameBoard
 ##########################################
-def makeMove(gameBoard,chosenBox):
+def makeMove(gameBoard,chosenBox,calcWeights=True):
 	##########################################
 
 	global verbose
@@ -695,14 +695,14 @@ def makeMove(gameBoard,chosenBox):
 	gameBoard.clusters = weighting.findCluster(gameBoard)
 	end = time.time()
 	clust_time = end-clust_start
-	weight_start = time.time()
-	gameBoard.weights = weighting.findWeights(gameBoard)
-	end = time.time()
-	weight_time = end-weight_start
-	
-	#end = time.time()
-	#print("Time to make move: " + str(end-start)
-	# )
+	if calcWeights:
+		weight_start = time.time()
+		gameBoard.weights = weighting.findWeights(gameBoard)
+		end = time.time()
+		weight_time = end-weight_start
+	else:
+		weight_time = 0
+
 	return tot_time, clust_time, weight_time
 
 if __name__ == "__main__":

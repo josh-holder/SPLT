@@ -8,6 +8,24 @@ import random
 import datetime
 import time
 
+def playUntilEnd(gameBoard):
+
+	sequence = []
+
+	while 1:
+		moveOptions = gameBoard.getMoveOptions()
+
+		if len(moveOptions) == 0:
+			break
+
+		bestSplit = max(range(len(gameBoard.weights)), key=gameBoard.weights.__getitem__)
+
+		sequence.append(bestSplit)
+
+		core.makeMove(gameBoard,bestSplit)
+
+	return len(sequence)
+
 if __name__ == "__main__":
 	gameBoard = core.Board()
 
@@ -29,13 +47,15 @@ if __name__ == "__main__":
 
 		bestSplit = max(range(len(gameBoard.weights)), key=gameBoard.weights.__getitem__)
 		print("Split " + str(len(gameBoard.splitRecord)), end='\r')
+		print(bestSplit, end = ", ")
 
 		sequence.append(bestSplit)
 
 		core.makeMove(gameBoard,bestSplit)
 	
-	print(sequence)
-	saveFile.write(str(sequence))
+	
+	saveFile.write(gameBoard.splitRecord)
+	saveFile.close()
 
 		
 

@@ -180,66 +180,6 @@ def findCluster(gameBoard):
 		print("Time to find clusters for turn "+str(len(gameBoard.splitRecord))+": "+str(end-start))
 	return clusters
 
-def findClusterOld(gameBoard):
-	#Given a gameBoard, finds the clusters that would be caused by a split of any box in the board
-	#INPUT: gameBoard, the gameboard object
-	#OUTPUT: clusters, a list of sets. Each inner list contains the indices of boxes that are involved in a cluster when a given box is split.
-	#The inner list is an empty list when splitting a given box results in no cluster
-
-	if timingInfo: start = time.time()
-	clusters = []
-
-	#iterates through every box in the board and splits them
-	for boxToBeCheckedIndex, boxToBeChecked in enumerate(gameBoard.box):
-		#only operates updates boxes that could have had their splits affected
-		
-		if boxToBeChecked.splitPossible(gameBoard.splitAction):
-			newClusters = set()
-
-			#create new list with candidate split boxes
-			newBoxes = copy.deepcopy(gameBoard.box)
-			
-			#add new boxes
-			if gameBoard.splitAction == HORIZONTAL:
-				newBoxes[boxToBeCheckedIndex].modify(boxToBeChecked.x, boxToBeChecked.y, boxToBeChecked.width, boxToBeChecked.height//2, 0)
-				newBoxes.append(core.Box(boxToBeChecked.x, boxToBeChecked.y+boxToBeChecked.height//2, boxToBeChecked.width, boxToBeChecked.height//2, 0))
-			else:
-				newBoxes[boxToBeCheckedIndex].modify(boxToBeChecked.x, boxToBeChecked.y, boxToBeChecked.width//2, boxToBeChecked.height, 0)
-				newBoxes.append(core.Box(boxToBeChecked.x+boxToBeChecked.width//2, boxToBeChecked.y, boxToBeChecked.width//2, boxToBeChecked.height, 0))
-
-			lastCreatedBox=newBoxes[-1]
-
-			#iterate through every box in the new list of boxes to see if it is in the upper left corner of a cluster
-			for clusterBoxIndex, clusterBox in enumerate(newBoxes):
-				if clusterBox == lastCreatedBox:
-					clusterMembers = set()
-					clusterMembers.add(clusterBoxIndex)
-
-					for otherBoxIndex, otherBox in enumerate(newBoxes):
-						if otherBox == lastCreatedBox:
-
-							# If otherbox is beside box
-							if otherBox.x==(clusterBox.x+clusterBox.width) and otherBox.y==clusterBox.y:	clusterMembers.add(otherBoxIndex)
-							# If otherbox is diagonal to box
-							elif otherBox.x==(clusterBox.x+clusterBox.width) and otherBox.y==(clusterBox.y+clusterBox.height):	clusterMembers.add(otherBoxIndex)
-							# If otherbox is below box
-							elif otherBox.x==clusterBox.x and otherBox.y==(clusterBox.y+clusterBox.height):	clusterMembers.add(otherBoxIndex)
-					
-					#This catches groups of 6 and 8 boxes as multiple groups of 4 boxes, which just doublecounts boxes but does not negatively impact accuracy
-					if len(clusterMembers) == 4:
-						newClusters = newClusters.union(clusterMembers)
-			clusters.append(newClusters)
-		
-		#otherwise, keep the old.
-		else:
-			clusters.append(set())
-			
-		
-	if timingInfo: 
-		end = time.time()
-		print("Time to find clusters for turn "+str(len(gameBoard.splitRecord))+": "+str(end-start))
-	return clusters
-
 def findSplitsUntilFall(gameBoard):
 	"""
 	Given a gameboard object, finds the points until each block falls.
@@ -251,10 +191,10 @@ def findSplitsUntilFall(gameBoard):
 	splitsUntilFall = {}
 	pointBlocksBelow = defaultdict(list)
 
-	explosionImminent = 0
-	for box in gameBoard.box:
-		if box.points == 1:
-			explosionImminent = 1
+	# explosionImminent = 0
+	# for box in gameBoard.box:
+	# 	if box.points == 1:
+	# 		explosionImminent = 1
 
 	sufverbose = 0
 
@@ -299,9 +239,6 @@ def findSplitsUntilFall(gameBoard):
 						if sufverbose: print("This is the new high splits until fall, so we update the max.")
 						maxSplitsToFall = splitsUntilFall[otherBoxIndex]
 						pointBlocksBelow[boxIndex] = copy.copy(pointBlocksBelow[otherBoxIndex])
-					
-					
-			
 
 
 			#the box with fall when its points run out, or a block below falls: whichever comes first. However, we only want to do this when the points are nonzero.
@@ -323,7 +260,13 @@ def findSplitsUntilFall(gameBoard):
 
 	return splitsUntilFall, pointBlocksBelow
 	
-
+def findSoonestSplit(gameBoard):
+	soonest_split = float('inf')
+	for box in gameBoard.box:
+		if box.points != 0 and box.points:
+			splitsLeft += (box.width * box.height) - 1
+	
+	return splitsLeft
 
 def findWeights(gameBoard):
 	"""
@@ -342,7 +285,6 @@ def findWeights(gameBoard):
 	"""
 	if timingInfo: start = time.time()
 
-	offset = 10
 	weights = []
 
 	total_splits = gameBoard.hor_splits+gameBoard.ver_splits
@@ -360,7 +302,7 @@ def findWeights(gameBoard):
 		if boxToBeWeighted.points == 0 and boxToBeWeighted.splitPossible(gameBoard.splitAction):
 			weight = 0 #default weight
 
-			createPoints = boxToBeWeightedIndex in gameBoard.clusters[boxToBeWeightedIndex]
+			createPoints = gameBoard.clusters[boxToBeWeightedIndex] != set()
 
 			#----------------------IMBALANCE WEIGHT-------------------------------- 
 			#weight depending on the balance of horizontal to vertical splits in the board
@@ -403,8 +345,6 @@ def findWeights(gameBoard):
 				else:
 					if weightverbose: print("Splitting this box would cause a cluster, so we don't weight it.")	
 					pass
-				
-				#
 			
 			#calculate imbalance weight for vertical splits
 			else:
@@ -505,7 +445,7 @@ def findWeights(gameBoard):
 							print("Splitting this box WILL cause a cluster, so we add weight accordingly.")
 							print("There are "+str(turns)+" opportunities to make this cluster until the split is made, so we add "+str(weightToAdd)+" weight.")
 
-						if difference < 2**(extraSplitsBelow+1):
+						if difference < 2**(extraSplitsBelow+1): 
 							weightToAdd = weightToAdd*.85
 							if weightverbose: print("-Difference is small enough that the blocks will end up one apart. We penalize the weight by 15%, yielding: "+str(weightToAdd))
 					
@@ -623,14 +563,66 @@ def findWeights(gameBoard):
 					print("Final weight value: "+str(weight))
 
 			else:
-				if weightverbose: print("This block doesn't create point blocks, so we do nothing.")
+				if weightverbose: print("`This block doesn`'t create point blocks, so we do nothing.")
 			
-			#----------------------UNEVEN CLUSTER WEIGHT PENALTY----------------
-			#determines if the cluster is a group of 6
-			if len(gameBoard.clusters[boxToBeWeightedIndex]) == 6:
-				weightToAdd = -10
-			else:
-				weightToAdd = 0
+			#---------------------- CLUSTER BETWEEN ROW/COLUMN WEIGHT PENALTY----------------
+			#clusters that start in the middle of columns or rows
+			# if len(gameBoard.clusters[boxToBeWeightedIndex]) > 4:
+			# 	weightToAdd = -10
+			# else:
+			# 	weightToAdd = 0
+
+			if weightverbose:
+				print("~~~Finding weight from mid-column/row penalties~~~")
+			
+			weightToAdd = 0
+			if createPoints:
+				if weightverbose:
+					print("Splitting this box would create a cluster, so we check if the cluster ends in the middle of any rows/colums")
+				#find the where the rightmost and bottommost clusters in the cluster are
+				minX = 8
+				minY = 16
+				maxX = 0
+				maxY = 0
+				clusters = gameBoard.clusters[boxToBeWeightedIndex]
+				for clusterBoxIndex in clusters:
+					if clusterBoxIndex < len(gameBoard.box): #ensure that you're not trying to check box that doesn't exist yet
+						if gameBoard.box[clusterBoxIndex].x > maxX:
+							maxX = gameBoard.box[clusterBoxIndex].x
+						if gameBoard.box[clusterBoxIndex].y > maxY:
+							maxY = gameBoard.box[clusterBoxIndex].y
+						if gameBoard.box[clusterBoxIndex].x < minX:
+							minX = gameBoard.box[clusterBoxIndex].x
+						if gameBoard.box[clusterBoxIndex].y < minY:
+							minY = gameBoard.box[clusterBoxIndex].y
+
+				#determine height and width of boxes in cluster based on type of split
+				clusterTop = minY
+				clusterLeft = minX
+				if gameBoard.splitAction == HORIZONTAL:
+					clusterBottom = maxY+boxToBeWeighted.height//2
+					clusterRight = maxX+boxToBeWeighted.width
+					if weightverbose:
+						print("Min Y from created cluster is "+str(clusterTop))
+						print("Min X from created cluster is "+str(clusterLeft))
+						print("Max Y from created cluster is "+str(clusterBottom))
+						print("Max X from created cluster is "+str(clusterRight))
+				else:
+					clusterBottom = maxY+boxToBeWeighted.height
+					clusterRight = maxX+boxToBeWeighted.width//2
+					if weightverbose:
+						print("Min Y from created cluster is "+str(clusterTop))
+						print("Min X from created cluster is "+str(clusterLeft))
+						print("Max Y from created cluster is "+str(clusterBottom))
+						print("Max X from created cluster is "+str(clusterRight))
+		
+				if (clusterBottom % 2) != 0 or (clusterTop % 2) != 0:
+					weightToAdd -= 50
+					if weightverbose: print("Cluster starts or ends in odd row, so add a weight of "+str(weightToAdd))
+				if (clusterRight % 2) != 0 or (clusterLeft % 2) != 0:
+					weightToAdd -= 50
+					if weightverbose: print("Cluster start or ends in odd column, so add a weight of "+str(weightToAdd))
+
 
 			weight += weightToAdd
 
@@ -644,7 +636,7 @@ def findWeights(gameBoard):
 	minWeight = min(weights)
 	if minWeight <=0:
 		minWeight = -minWeight
-		weights = [x+minWeight+.1+offset for x in weights]
+		weights = [x+minWeight+.01 for x in weights]
 	
 	for boxind, box in enumerate(gameBoard.box):
 		if not box.splitPossible(gameBoard.splitAction):
@@ -666,4 +658,4 @@ if __name__ == '__main__':
 	core.makeMove(gb,0)
 	core.makeMove(gb,0)
 	core.makeMove(gb,1)
-	findClusterNew(gb)
+	findCluster(gb)

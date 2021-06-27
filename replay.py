@@ -105,11 +105,12 @@ def replaySequence(graphicalDisplay,sequence):
 		except IndexError: pass
 		
 		print("Move {0} of {1}: Split box #{2}".format(len(gameBoard.splitRecord),len(sequence),nextMove))
-		
+
+
 		graphicalDisplay.HighlightBox(nextMove)
 		graphicalDisplay.Update(gameBoard)
 		
-		tempDelay=input("Press any key to continue")
+		userinput=input("Press any key to continue")
 		if nextMove not in moveOptions:
 			print("------ IMPOSSIBLE MOVE REQUESTED -----")
 			break
@@ -123,7 +124,10 @@ def replaySequence(graphicalDisplay,sequence):
 			print(max(gameBoard.weights))
 			print("Weight of box chosen:")
 			print(gameBoard.weights[nextMove])
+			print(gameBoard.weights)
 
+		if userinput == "w":
+			print(gameBoard.weights)
 
 		core.makeMove(gameBoard,nextMove)       
 
