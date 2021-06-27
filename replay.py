@@ -2,7 +2,7 @@ import core_update as core
 import sys
 from PyQt5.QtWidgets import QWidget, QApplication
 from PyQt5.QtGui import QPainter, QColor, QPen,QBrush
-from PyQt5.QtCore import *
+from PyQt5.QtCore import QRect, Qt
 
 
 ##########################################
