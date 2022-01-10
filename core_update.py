@@ -211,6 +211,17 @@ def drawScreen(gameBoard):
 			print(gameBoard.screenBuffer[jj][ii], end=' ')
 		print(" ")	
 
+def getScreenString(gameBoard):
+##########################################
+	updateScreenBuffer(gameBoard)
+	ret_str = ""
+	for jj in range((gameBoard.height*2)+1):
+		for ii in range((gameBoard.width*2)+1):
+			ret_str += gameBoard.screenBuffer[jj][ii]+' '
+		ret_str += "\n"
+	
+	return ret_str
+
 # Evolves an input gameBoard forward, given that you are choosing to split chosenBox on that gameBoard
 ##########################################
 def makeMove(gameBoard,chosenBox,calcWeights=True):
@@ -632,7 +643,7 @@ def makeMove(gameBoard,chosenBox,calcWeights=True):
 
 		# Any newly created clusters should also be immediately decremented and points awarded (they weren't around when the rest of the blocks had this done)
 		for box in gameBoard.box:
-			if box.temppoints is not 0:
+			if box.temppoints != 0:
 				box.points+=box.temppoints-1
 				countDownScore+=1
 				box.temppoints=0

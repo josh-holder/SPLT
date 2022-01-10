@@ -171,30 +171,29 @@ def loadDataFromPreviousRun():
 	winningSequence=[]
 
 
-	try:
-		saveFileName="[playScript05metaBestSequences].txt"
-		
-		saveFile=open(saveFileName,'r')
-		for line in saveFile:
-			data=line.rstrip('\n').split("\t")
-			bestSequencesLengths.append(int(data[0]))
-			data[1]= ''.join(c for c in data[1] if c not in '[] ')
-			path=data[1].split(",")
-			for index,element in enumerate(path):
-				path[index]=int(element)
-			bestSequences.append(path)
-		saveFile.close()
+	saveFileName="sequences/combo1021.txt"
+	
+	saveFile=open(saveFileName,'r')
+	for line in saveFile:
+		data=line.rstrip('\n').split("\t")
+		bestSequencesLengths.append(int(data[0]))
+		data[1]= ''.join(c for c in data[1] if c not in '[] ')
+		path=data[1].split(",")
+		for index,element in enumerate(path):
+			path[index]=int(element)
+		bestSequences.append(path)
+	saveFile.close()
 
-		maxSequenceLength=int(max(bestSequencesLengths))
-		bestSequencesIndex=bestSequencesLengths.index(max(bestSequencesLengths))
-		winningSequence=bestSequences[bestSequencesIndex]	
+	maxSequenceLength=int(max(bestSequencesLengths))
+	bestSequencesIndex=bestSequencesLengths.index(max(bestSequencesLengths))
+	winningSequence=bestSequences[bestSequencesIndex]	
 
-	except:
+	# except FileNotFoundError:
 
-		print("No save files found - we must not be resuming a prior run")
-		bestSequences=[0]
-		bestSequencesLengths=[0]
-		winningSequence=[0]
+	# 	print("No save files found - we must not be resuming a prior run")
+	# 	bestSequences=[0]
+	# 	bestSequencesLengths=[0]
+	# 	winningSequence=[0]
 
 	return bestSequences,bestSequencesLengths,winningSequence
 

@@ -10,8 +10,6 @@ import time
 
 def playUntilEnd(gameBoard):
 
-	sequence = []
-
 	while 1:
 		moveOptions = gameBoard.getMoveOptions()
 
@@ -20,16 +18,14 @@ def playUntilEnd(gameBoard):
 
 		bestSplit = max(range(len(gameBoard.weights)), key=gameBoard.weights.__getitem__)
 
-		sequence.append(bestSplit)
-
 		core.makeMove(gameBoard,bestSplit)
 
-	return len(sequence)
+	return len(gameBoard.splitRecord)
 
 if __name__ == "__main__":
 	gameBoard = core.Board()
 
-	saveName = "nonrandomAlgorithm_seq.txt"
+	saveName = "sequences/nonrandomAlgorithm_seq.txt"
 
 	saveFile = open(saveName,'w')
 
@@ -54,7 +50,7 @@ if __name__ == "__main__":
 		core.makeMove(gameBoard,bestSplit)
 	
 	
-	saveFile.write(gameBoard.splitRecord)
+	saveFile.write(str(gameBoard.splitRecord))
 	saveFile.close()
 
 		

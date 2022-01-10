@@ -177,7 +177,7 @@ def findCluster(gameBoard):
 		
 	if timingInfo: 
 		end = time.time()
-		print("Time to find clusters for turn "+str(len(gameBoard.splitRecord))+": "+str(end-start))
+		print("Time to find clusters for turn "+str(curr_splits)+": "+str(end-start))
 	return clusters
 
 def findSplitsUntilFall(gameBoard):
@@ -256,7 +256,7 @@ def findSplitsUntilFall(gameBoard):
 	
 	if timingInfo: 
 		end = time.time()
-		print("Time to find splits until fall for turn "+str(len(gameBoard.splitRecord))+": "+str(end-start))
+		print("Time to find splits until fall for turn "+str(curr_splits)+": "+str(end-start))
 
 	return splitsUntilFall, pointBlocksBelow
 	
@@ -268,7 +268,7 @@ def findSoonestSplit(gameBoard):
 	
 	return splitsLeft
 
-def findWeights(gameBoard):
+def findWeights(gameBoard,weightverbose=0):
 	"""
 	Given a gameboard and thus the list of boxes in the gameboard, gameBoard.box, finds the weights of each box in the gameboard.
 	Factors that are considered:
@@ -290,11 +290,13 @@ def findWeights(gameBoard):
 	total_splits = gameBoard.hor_splits+gameBoard.ver_splits
 	splitImbalance = gameBoard.hor_splits-gameBoard.ver_splits
 
+	curr_splits = len(gameBoard.splitRecord)
+
 	splitsUntilFall,pointBlocksBelow = findSplitsUntilFall(gameBoard)
 
 	if weightverbose: 
 		print("_________________________________________________________")
-		print("Calculating weights for move "+str(len(gameBoard.splitRecord)))
+		print("Calculating weights for move "+str(curr_splits))
 		print("_________________________________________________________")
 
 	for boxToBeWeightedIndex, boxToBeWeighted in enumerate(gameBoard.box):
@@ -311,7 +313,7 @@ def findWeights(gameBoard):
 				print(" ")
 				print("BLOCK "+str(boxToBeWeightedIndex))
 				print("~~~Finding weight from imbalance for block "+str(boxToBeWeightedIndex)+":~~~") 
-				print(str(splitImbalance) + " more hor than ver splits for split " + str(len(gameBoard.splitRecord)))
+				print(str(splitImbalance) + " more hor than ver splits for split " + str(curr_splits))
 				
 
 			if gameBoard.splitAction == HORIZONTAL:
@@ -396,7 +398,12 @@ def findWeights(gameBoard):
 			#only applies a penalty to making a worse aspect ratio
 			if newaspectRatio - aspectRatio > 1:
 				#eyeballed to remove 10 points when taking an aspect ratio from 4 to 8, remove 2 points when taking an aspect ratio from 2 to 4
-				weightToAdd = -.75*(newaspectRatio - aspectRatio)**2+.5*(newaspectRatio - aspectRatio)
+				if (newaspectRatio - aspectRatio) >=4:
+					weightToAdd = -20
+				elif (newaspectRatio - aspectRatio) >=2:
+					weightToAdd = -10
+					if curr_splits > 450:
+						weightToAdd = -15
 				if weightverbose: 
 					print("Aspect ratio is getting worse, going from "+str(aspectRatio)+" to "+str(newaspectRatio))
 					print("We add a penalty weight of "+str(weightToAdd))
@@ -419,7 +426,7 @@ def findWeights(gameBoard):
 			if splitsUntilFall[boxToBeWeightedIndex] != 0:
 				
 				extraSplitsBelow = len(pointBlocksBelow[boxToBeWeightedIndex])-1
-				difference = (len(gameBoard.splitRecord)+1) - (pointBlocksBelow[boxToBeWeightedIndex][-1]-1) 
+				difference = (curr_splits+1) - (pointBlocksBelow[boxToBeWeightedIndex][-1]-1) 
 				
 
 				#now we add weight to boxes differently depending on whether splitting the box will cause a cluster.
@@ -454,10 +461,13 @@ def findWeights(gameBoard):
 				
 				#otherwise, if splitting the box won't cause a cluster, we prioritize splitting boxes in this row, but less aggressively
 				else:
-					#Eyeball the weight to be +10 when the box has 10 turns to fall, decreasing quadratically to 0 at 2 splits and 18 splits
-					if 2 < splitsUntilFall[boxToBeWeightedIndex] <= 18:
+					a = 13
+					b = 1.6
+					c = -0.2
+					#Eyeball the weight to be highest (~16) at 4 splits left, decreasing to zero at 13 splits away
+					if 2 < splitsUntilFall[boxToBeWeightedIndex] < 13:
 						#weightToAdd = -.15625*splitsUntilFall[boxToBeWeightedIndex]**2+3.125*splitsUntilFall[boxToBeWeightedIndex]-5.625
-						weightToAdd = -.15625*splitsUntilFall[boxToBeWeightedIndex]**2+3.125*splitsUntilFall[boxToBeWeightedIndex]-5.625
+						weightToAdd = c*splitsUntilFall[boxToBeWeightedIndex]**2+b*splitsUntilFall[boxToBeWeightedIndex]+a
 					else:
 						weightToAdd = 0
 					
@@ -468,11 +478,11 @@ def findWeights(gameBoard):
 					#if you're too late to make this split, calculate based on the next split that will happen
 					if splitsUntilFall[boxToBeWeightedIndex] <=2 and len(pointBlocksBelow[boxToBeWeightedIndex]) > 1:
 						newPointBlocksBelow = pointBlocksBelow[boxToBeWeightedIndex][1:]
-						tillFall = min(newPointBlocksBelow)
+						tillFall = math.ceil((min(newPointBlocksBelow)-splitsUntilFall[boxToBeWeightedIndex])/2)
 						
 						#weight the same way as above, but using the new number of splits until fall
-						if 2 < tillFall <= 18:
-							weightToAdd = -.15625*splitsUntilFall[boxToBeWeightedIndex]**2+3.125*splitsUntilFall[boxToBeWeightedIndex]-5.625
+						if 2 < tillFall < 13:
+							weightToAdd = c*splitsUntilFall[boxToBeWeightedIndex]**2+b*splitsUntilFall[boxToBeWeightedIndex]+a
 						else:
 							weightToAdd = 0
 						
@@ -492,9 +502,9 @@ def findWeights(gameBoard):
 				print("Total box weight is now "+str(weight))
 				print("~~~Finding weight from height:~~~")
 
-			#--------------------------HEIGHT WEIGHT-----------------------------
-			#Adds bonus weight of up to 7.5 when splitting blocks at the bottom of the board. 
-			#This factor is extra important if the split would create a cluster. (200%)
+			# --------------------------HEIGHT WEIGHT-----------------------------
+			# Adds bonus weight of up to 7.5 when splitting blocks at the bottom of the board. 
+			# This factor is extra important if the split would create a cluster. (200%)
 
 			if createPoints:
 
@@ -539,18 +549,20 @@ def findWeights(gameBoard):
 					if box.points == 0:
 						max_splits += box.width*box.height-1
 
-				#determine how many squares the cluster will be
-				if gameBoard.splitAction == HORIZONTAL:
-					splitsAvailable = (box.width*box.height)-1
-				else:
-					splitsAvailable = (box.width*box.height)-1
+				clusterSquares = (boxToBeWeighted.width*boxToBeWeighted.height)/2*(len(gameBoard.clusters[boxToBeWeightedIndex]))
 
-				clusterSquares = len(gameBoard.clusters[boxToBeWeightedIndex])/2*splitsAvailable
+				# #determine how many squares the cluster will be
+				# if gameBoard.splitAction == HORIZONTAL:
+				# 	splitsAvailable = (box.width*box.height)-1
+				# else:
+				# 	splitsAvailable = (box.width*box.height)-1
+
+				# clusterSquares = len(gameBoard.clusters[boxToBeWeightedIndex])/2*splitsAvailable
 
 				#if clustersquares is not the minimum (4), apply a penalty based on the proportion 
 				# of the remaining squares that the cluster takes up
 				if clusterSquares > 4:
-					weightToAdd = -60*(clusterSquares/total_splits)*(len(gameBoard.splitRecord)/200)
+					weightToAdd = -60*(clusterSquares/total_splits)*(curr_splits/200)
 				else:
 					weightToAdd=0
 				
@@ -560,17 +572,29 @@ def findWeights(gameBoard):
 					print("This cluster takes up "+str(clusterSquares)+" available splits.")
 					print("There are "+str(max_splits)+" splits left on the board.")
 					print("We add "+str(weightToAdd)+" to the weight.")
-					print("Final weight value: "+str(weight))
+					print("Total weight is now: {}".format(weight))
 
 			else:
 				if weightverbose: print("`This block doesn`'t create point blocks, so we do nothing.")
+
+			# if createPoints:
+			# 	weightToAdd = 0
+			# 	if gameBoard.splitAction == HORIZONTAL:
+			# 		if (box.width != 1 or box.height != 2) and curr_splits > 50:
+			# 			weightToAdd = -50
+			# 		# splitsAvailable = (box.width*box.height)-1
+			# 	else:
+			# 		if (box.width != 2 or box.height != 1) and curr_splits > 50:
+			# 			weightToAdd = -50
+
+			# 	weight += weightToAdd
 			
 			#---------------------- CLUSTER BETWEEN ROW/COLUMN WEIGHT PENALTY----------------
 			#clusters that start in the middle of columns or rows
-			# if len(gameBoard.clusters[boxToBeWeightedIndex]) > 4:
-			# 	weightToAdd = -10
-			# else:
-			# 	weightToAdd = 0
+			if len(gameBoard.clusters[boxToBeWeightedIndex]) > 4:
+				weightToAdd = -10
+			else:
+				weightToAdd = 0
 
 			if weightverbose:
 				print("~~~Finding weight from mid-column/row penalties~~~")
@@ -626,6 +650,50 @@ def findWeights(gameBoard):
 
 			weight += weightToAdd
 
+			#----------------------BREAKING UP BIG HORIZONTAL BONUS----------------
+			#clusters that start in the middle of columns or rows
+			weightToAdd = 0
+			if weightverbose: print("~~~Finding penalties bonuses related to wide blocks~~~")
+			if gameBoard.splitAction == HORIZONTAL:
+				if boxToBeWeighted.height > 2 and boxToBeWeighted.width > 2:
+					weightToAdd = -5
+					if weightverbose:
+						print("Creates multiple wide blocks (height = {}, width = {}, splitting horizontally)".format(boxToBeWeighted.height,boxToBeWeighted.width))
+						print("Thus, {} weight".format(weightToAdd))
+			else:
+				if boxToBeWeighted.width > 2:
+					weightToAdd = 5
+					if weightverbose:
+						print("Splits wide block (width = {}, splitting horizontally)".format(boxToBeWeighted.width))
+						print("Thus, {} weight".format(weightToAdd))
+			
+			weight += weightToAdd
+
+
+			#----------------------AVOID TRIPLE EDGE CASE----------------
+			#if splitting a block would prevent you from creating a cluster below, weight it very slightly less
+			weightToAdd = 0
+			if boxToBeWeighted.width == 2 and boxToBeWeighted.height == 1 and gameBoard.splitAction == VERTICAL:
+				#check if there is a small box and tall box below
+				uprightBox = 0
+				smallBox = 0
+				for box in gameBoard.box:
+					if (box.x == boxToBeWeighted.x) or (box.x == boxToBeWeighted.x+1):
+						if box.width == 1 and box.y == boxToBeWeighted.y+1:
+							if box.height == 2:
+								uprightBox = 1
+							elif box.height == 1:
+								smallBox = 1
+				if uprightBox and smallBox: 
+					weightToAdd = -1
+					if weightverbose: print("Forced triple edge case! Subtracting 1 to make the difference")
+			
+			#TODO: Could also do other edge case here, the horizontal equivalent. Comes up less often
+			
+			weight += weightToAdd
+
+			if weightverbose: print("FINAL weight is: {}".format(weight))
+
 			weights.append(weight)
 
 		else:
@@ -637,7 +705,7 @@ def findWeights(gameBoard):
 	if minWeight <=0:
 		minWeight = -minWeight
 		weights = [x+minWeight+.01 for x in weights]
-	
+
 	for boxind, box in enumerate(gameBoard.box):
 		if not box.splitPossible(gameBoard.splitAction):
 			weights[boxind] = 0
@@ -648,7 +716,7 @@ def findWeights(gameBoard):
 
 	if timingInfo: 
 		end = time.time()
-		print("Time to calculate weights until fall for turn "+str(len(gameBoard.splitRecord))+": "+str(end-start))
+		print("Time to calculate weights until fall for turn {}: {}".format(curr_splits,end-start))
 	return weights
 
 if __name__ == '__main__':
