@@ -1,4 +1,3 @@
-#the program allows you to leverage the algorithm to 
 from weighting import findWeights
 from replayWithAlgo import gameBoardDisplay
 import core_update as core
@@ -16,7 +15,7 @@ if __name__ == "__main__":
 
     saveName = "sequences/playAssist_seq.txt"
 
-    piggyBackSeqName = "sequences/1053seq.txt"
+    piggyBackSeqName = "sequences/1133seq.txt"
 
     try:
         f = open(piggyBackSeqName, "r")

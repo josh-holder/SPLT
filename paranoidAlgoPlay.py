@@ -33,15 +33,15 @@ def getBoardFromSequence(sequence):
 
 if __name__ == "__main__":
 
-	log_name = "sequences/logParanoid1_11deep.txt"
+	log_name = "sequences/logParanoid_midexplore.txt"
 
-	continuation = False
+	continuation = True
 	piggyback = False
 
 	weight_diff_tol = 0.25
 
 	#If you want to pick up search from where you left off
-	continuation_name = "sequences/paranoid1_11deep_continuation.pkl"
+	continuation_name = "sequences/paranoid_midexplore_continuation.pkl"
 	if continuation:
 		with open(continuation_name,'rb') as f:
 			cont_data = pickle.load(f)
@@ -157,9 +157,10 @@ if __name__ == "__main__":
 		most_recent_box = game_board.box[-1]
 
 		split_created_big_cluster = ((most_recent_box.points != 0) and (most_recent_box.width != 1 or most_recent_box.height != 1))
-		another_as_good_option = ((weight_diff < 3) and (weight_diff > 1) and len(game_board.splitRecord)>875)
+		another_as_good_option = ((weight_diff < 3) and \
+			len(game_board.splitRecord)>700 and len(game_board.splitRecord)<750)
 		if another_as_good_option:
-			almost_as_good_tracker = (another_as_good_option+1) % 2
+			almost_as_good_tracker = (another_as_good_option+1) % 3
 			if almost_as_good_tracker != 0:
 				another_as_good_option = False
 		# another_as_good_option = False
