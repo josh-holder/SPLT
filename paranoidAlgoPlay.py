@@ -1,7 +1,7 @@
 import sys 
 import math
 import os
-from weighting import findWeights
+from advanced_weighting import findWeights
 from core_update import getScreenString
 from core_update import HORIZONTAL
 import core_update as core
@@ -33,7 +33,7 @@ def getBoardFromSequence(sequence):
 
 if __name__ == "__main__":
 
-	log_name = "sequences/logParanoid1_11deep.txt"
+	log_name = "sequences/logParanoidadvanced.txt"
 
 	continuation = False
 	piggyback = False
@@ -41,7 +41,7 @@ if __name__ == "__main__":
 	weight_diff_tol = 0.25
 
 	#If you want to pick up search from where you left off
-	continuation_name = "sequences/paranoid1_11deep_continuation.pkl"
+	continuation_name = "sequences/paranoidadvanced_continuation.pkl"
 	if continuation:
 		with open(continuation_name,'rb') as f:
 			cont_data = pickle.load(f)

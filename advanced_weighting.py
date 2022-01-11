@@ -772,7 +772,7 @@ def findWeights(gameBoard,weightverbose=0):
 			most_recent_box = testgb.box[-1]
 			if ((most_recent_box.points != 0) and (most_recent_box.width != 1 or most_recent_box.height != 1) and best_split not in splits_checked_for_unintented):
 				blocks_used = (most_recent_box.width*most_recent_box.height)*4
-				unintended_penalty = (blocks_used/total_splits)*(-20)*(curr_splits/300)**2 #scale based on proportion of splts left and where you are in game
+				unintended_penalty = (blocks_used/total_splits)*(-20)*(curr_splits/1000) #scale based on proportion of splts left and where you are in game
 				weights[best_split] += unintended_penalty
 				if weightverbose:
 					print("Caused unintended split size {} - adding negative weight of {} to split {}".format(blocks_used,unintended_penalty,best_split))
