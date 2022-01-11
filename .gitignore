@@ -1,2 +1,4 @@
-sequences/
+glitch_sequences/
+Archive/
+.pynb_checkpoints/
 __pycache__/
