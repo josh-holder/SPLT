@@ -33,15 +33,15 @@ def getBoardFromSequence(sequence):
 
 if __name__ == "__main__":
 
-	log_name = "sequences/logParanoid1021.txt"
+	log_name = "sequences/logParanoid1_11deep.txt"
 
-	continuation = True
+	continuation = False
 	piggyback = False
 
 	weight_diff_tol = 0.25
 
 	#If you want to pick up search from where you left off
-	continuation_name = "sequences/paranoid1021_continuation.pkl"
+	continuation_name = "sequences/paranoid1_11deep_continuation.pkl"
 	if continuation:
 		with open(continuation_name,'rb') as f:
 			cont_data = pickle.load(f)
@@ -50,6 +50,7 @@ if __name__ == "__main__":
 			best_sequence_len = cont_data[2]
 			exploring_from = cont_data[3] #splits
 			restart_splits = cont_data[4]
+			game_num = cont_data[5]
 
 			game_board = big_cluster_boards.pop()
 			game_board.weights = big_cluster_weights.pop()
@@ -64,10 +65,11 @@ if __name__ == "__main__":
 		log_file.close()
 
 		game_board = core.Board()
+		game_num = 0
 
 	#If you want to explore from an already existing sequence:
 	if piggyback:
-		sequenceFile = "sequences/combo1021.txt"
+		sequenceFile = "sequences/1030wpotential.txt"
 		try:
 			f = open(sequenceFile, "r")
 		except:
@@ -81,7 +83,7 @@ if __name__ == "__main__":
 		piggyback_sequence=(line.rstrip('\n').split(', '))
 		piggyback_sequence=[int(ii) for ii in piggyback_sequence]
 
-	game_num = 0
+	almost_as_good_tracker = 0
 
 	while 1:
 		moveOptions = game_board.getMoveOptions()
@@ -90,10 +92,10 @@ if __name__ == "__main__":
 			game_num += 1
 
 
-			#Every 50 games, update the saved version of your continuation list
-			if game_num % 50 == 0:
+			#Every 100 games, update the saved version of your continuation list
+			if game_num % 100 == 0:
 				with open(continuation_name,'wb') as cf:
-					pickle.dump([big_cluster_boards,big_cluster_weights,best_sequence_len,exploring_from,restart_splits],cf)
+					pickle.dump([big_cluster_boards,big_cluster_weights,best_sequence_len,exploring_from,restart_splits,game_num],cf)
 
 			with open(log_name,'a') as lf:
 				lf.write("\tLost at {} splits (base state = {})\n".format(len(game_board.splitRecord),exploring_from))
@@ -103,6 +105,7 @@ if __name__ == "__main__":
 					best_sequence_len = len(game_board.splitRecord)
 					lf.write("~~New Record! {} Splits (after {} games)~~\n".format(best_sequence_len,game_num))
 					lf.write("{}\n".format(game_board.splitRecord))
+					print('\007',end='\r') #play boop
 
 				#pop off last gameboard which caused a big cluster, restart from here
 				if len(big_cluster_boards) > 0:
@@ -112,6 +115,7 @@ if __name__ == "__main__":
 					restart_splits = len(game_board.splitRecord)
 				else:
 					lf.write("Exhausted all options - no more big clusters to remove. Highest splits reached was {}".format(len(game_board.splitRecord)))
+					print('\007',end='\r') #play boop
 
 				#If this is the lowest split board we are expanding, update this:
 				if len(game_board.splitRecord) < exploring_from:
@@ -120,6 +124,7 @@ if __name__ == "__main__":
 					lf.write("Exploring from new base state - {} splits. Board:\n".format(exploring_from))
 					lf.write(getScreenString(game_board))
 					lf.write("Sequence:\n{}\n".format(game_board.splitRecord))
+					print('\007',end='\r') #play boop
 
 		#remove double weights
 		seen_weights = set()
@@ -153,6 +158,11 @@ if __name__ == "__main__":
 
 		split_created_big_cluster = ((most_recent_box.points != 0) and (most_recent_box.width != 1 or most_recent_box.height != 1))
 		another_as_good_option = ((weight_diff < 3) and (weight_diff > 1) and len(game_board.splitRecord)>875)
+		if another_as_good_option:
+			almost_as_good_tracker = (another_as_good_option+1) % 2
+			if almost_as_good_tracker != 0:
+				another_as_good_option = False
+		# another_as_good_option = False
 		if split_created_big_cluster or another_as_good_option:
 			old_weights = list(old_game_board.weights)
 

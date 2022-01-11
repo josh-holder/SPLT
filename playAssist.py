@@ -16,7 +16,7 @@ if __name__ == "__main__":
 
     saveName = "sequences/playAssist_seq.txt"
 
-    piggyBackSeqName = "sequences/966random.txt"
+    piggyBackSeqName = "sequences/1053seq.txt"
 
     try:
         f = open(piggyBackSeqName, "r")

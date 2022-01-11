@@ -268,6 +268,27 @@ def findSoonestSplit(gameBoard):
 	
 	return splitsLeft
 
+def findLowestAvailableBox(gameBoard):
+	"""
+	Given a gameboard, determines the lowest box without points to split in the column.
+	Based on the assumption that the gameboard will be organized into 4 clear columns and
+	8 clear rows, we only save information on this. (This will only be used to influence
+	splits after 300 splits, when the board has stabilized into this predicatbale form.)
+	INPUTS: gameBoard, the current gameBoard object
+	OUTPUTS: lowest_in_col, a dictionary
+		-keys corresponding to column number (x=0-1->col=0, x=2-3->col=1, etc.)
+		-values corresponding to row number (y=0-1->row=0,y=2-3->row=1)
+	"""
+	lowest_in_col = defaultdict(int)
+	for box in gameBoard.box:
+		if box.points == 0: #only care about boxes that are still available to split
+			row = math.floor(box.y/2)
+			col = math.floor(box.x/2)
+			if row > lowest_in_col[col]:
+				lowest_in_col[col] = row
+
+	return lowest_in_col
+
 def findWeights(gameBoard,weightverbose=0):
 	"""
 	Given a gameboard and thus the list of boxes in the gameboard, gameBoard.box, finds the weights of each box in the gameboard.
@@ -293,6 +314,10 @@ def findWeights(gameBoard,weightverbose=0):
 	curr_splits = len(gameBoard.splitRecord)
 
 	splitsUntilFall,pointBlocksBelow = findSplitsUntilFall(gameBoard)
+
+	aboutToLose = (total_splits < min(splitsUntilFall.values()))
+
+	lowest_in_col = findLowestAvailableBox(gameBoard)
 
 	if weightverbose: 
 		print("_________________________________________________________")
@@ -342,6 +367,10 @@ def findWeights(gameBoard,weightverbose=0):
 
 						if weightverbose: print("More horizontal than vertical splits, so we add weight of " + str(weightToAdd))
 					
+					#If you're gonna lose inevitably, this is the only thing that matters:
+					if aboutToLose: 
+						weightToAdd *= 100
+
 					weight += weightToAdd
 
 				else:
@@ -427,7 +456,6 @@ def findWeights(gameBoard,weightverbose=0):
 				
 				extraSplitsBelow = len(pointBlocksBelow[boxToBeWeightedIndex])-1
 				difference = (curr_splits+1) - (pointBlocksBelow[boxToBeWeightedIndex][-1]-1) 
-				
 
 				#now we add weight to boxes differently depending on whether splitting the box will cause a cluster.
 				if createPoints:
@@ -438,9 +466,7 @@ def findWeights(gameBoard,weightverbose=0):
 					if weightverbose: print("There are "+str(extraSplitsBelow)+" extra halvings occuring on this box before it reaches 0. The difference between the next lowest point block in the column is "+str(difference)+".")
 
 					if difference >= 2**extraSplitsBelow:
-
 						if weightverbose: print("This difference is enough to cause another halving, so we increase the block's weight.")
-
 						#eyeballed to add 40 points of weight when this is the last chance to create the cluster, exponentially decreasing to 20 points when it is not urgent
 						#If the difference is less than 2^(splitsUntilFall+1), then decrease the weight increase by 15% because its harder to 
 						#take full advantage of the double split, but it's still a double split
@@ -464,34 +490,45 @@ def findWeights(gameBoard,weightverbose=0):
 					a = 13
 					b = 1.6
 					c = -0.2
-					#Eyeball the weight to be highest (~16) at 4 splits left, decreasing to zero at 13 splits away
-					if 2 < splitsUntilFall[boxToBeWeightedIndex] < 13:
-						#weightToAdd = -.15625*splitsUntilFall[boxToBeWeightedIndex]**2+3.125*splitsUntilFall[boxToBeWeightedIndex]-5.625
-						weightToAdd = c*splitsUntilFall[boxToBeWeightedIndex]**2+b*splitsUntilFall[boxToBeWeightedIndex]+a
-					else:
-						weightToAdd = 0
-					
-					if weightverbose: 
-						print("Splitting this box WILL NOT cause a cluster, so we add weight accordingly.")
-						print("There are "+str(splitsUntilFall[boxToBeWeightedIndex])+" splits until the block is halved, so we add "+str(weightToAdd)+" weight.")
-
-					#if you're too late to make this split, calculate based on the next split that will happen
-					if splitsUntilFall[boxToBeWeightedIndex] <=2 and len(pointBlocksBelow[boxToBeWeightedIndex]) > 1:
-						newPointBlocksBelow = pointBlocksBelow[boxToBeWeightedIndex][1:]
-						tillFall = math.ceil((min(newPointBlocksBelow)-splitsUntilFall[boxToBeWeightedIndex])/2)
-						
-						#weight the same way as above, but using the new number of splits until fall
-						if 2 < tillFall < 13:
+					if difference >= 2**extraSplitsBelow or splitsUntilFall[boxToBeWeightedIndex] <= 5:
+						#Eyeball the weight to be highest (~16) at 4 splits left, decreasing to zero at 13 splits away
+						if 2 < splitsUntilFall[boxToBeWeightedIndex] < 13:
+							#weightToAdd = -.15625*splitsUntilFall[boxToBeWeightedIndex]**2+3.125*splitsUntilFall[boxToBeWeightedIndex]-5.625
 							weightToAdd = c*splitsUntilFall[boxToBeWeightedIndex]**2+b*splitsUntilFall[boxToBeWeightedIndex]+a
 						else:
 							weightToAdd = 0
 						
-						if weightverbose:
-							print("This block will fall in "+str(splitsUntilFall[boxToBeWeightedIndex])+" splits, so there's no chance we make a point block before this.")
-							print("Entire list of point blocks beneath, minus the lowest:")
-							print(newPointBlocksBelow)
-							print("New splits until falling: "+str(tillFall))
-							print("Using this number of splitsUntilFall, we add "+str(weightToAdd)+" weight.")	
+						if weightverbose: 
+							print("Splitting this box WILL NOT cause a cluster, so we add weight accordingly.")
+							print("There are "+str(splitsUntilFall[boxToBeWeightedIndex])+" splits until the block is halved, so we add "+str(weightToAdd)+" weight.")
+
+						#if you're too late to make this split, calculate based on the next split that will happen
+						if splitsUntilFall[boxToBeWeightedIndex] <=2 and len(pointBlocksBelow[boxToBeWeightedIndex]) > 1:
+							newPointBlocksBelow = pointBlocksBelow[boxToBeWeightedIndex][1:]
+							tillFall = math.ceil((min(newPointBlocksBelow)-splitsUntilFall[boxToBeWeightedIndex])/2)
+							
+							#weight the same way as above, but using the new number of splits until fall
+							if 2 < tillFall < 13:
+								weightToAdd = c*splitsUntilFall[boxToBeWeightedIndex]**2+b*splitsUntilFall[boxToBeWeightedIndex]+a
+							else:
+								weightToAdd = 0
+							
+							if weightverbose:
+								print("This block will fall in "+str(splitsUntilFall[boxToBeWeightedIndex])+" splits, so there's no chance we make a point block before this.")
+								print("Entire list of point blocks beneath, minus the lowest:")
+								print(newPointBlocksBelow)
+								print("New splits until falling: "+str(tillFall))
+								print("Using this number of splitsUntilFall, we add "+str(weightToAdd)+" weight.")	
+				
+				#Penalize weight by 50% if theres another available point block in a lower row in this column.
+				#This means that you will strand a higher point block lower down, effectively losing the benefit of this split
+				#Only activate at splits>300, when the board position normalizes further
+				if curr_splits > 300:
+					box_row = math.floor(boxToBeWeighted.y/2)
+					box_col = math.floor(boxToBeWeighted.x/2)
+					if box_row < lowest_in_col[box_col]:
+						weightToAdd *= 0.5
+						if weightverbose: print("Not in the lowest row in this column, so dividing weight by 2")
 						
 			else:
 				if weightverbose: print("This block is sitting on no point blocks, so we assign no extra split weight.")
@@ -501,6 +538,20 @@ def findWeights(gameBoard,weightverbose=0):
 			if weightverbose: 
 				print("Total box weight is now "+str(weight))
 				print("~~~Finding weight from height:~~~")
+
+			#---------------------------NEXT HIGHEST IN COL WEIGHT----------------
+			# Add weight if the next highest block in the column is way lower the current number of splits		
+			if len(pointBlocksBelow[boxToBeWeightedIndex]) != 0 and curr_splits > 800:
+				curr_highest_split_pct = (curr_splits-pointBlocksBelow[boxToBeWeightedIndex][-1])/curr_splits
+				weightToAdd = 9*curr_highest_split_pct
+				weight += weightToAdd
+
+				if weightverbose:
+					print("~~~Finding weight from highest point block beneath:~~~")
+					print("Highest point block below is {} ({} pct of splits), so adding {} weight"\
+						.format(pointBlocksBelow[boxToBeWeightedIndex][-1],curr_highest_split_pct,weightToAdd))
+					print("Total weight is now {}".format(weight))
+				
 
 			# --------------------------HEIGHT WEIGHT-----------------------------
 			# Adds bonus weight of up to 7.5 when splitting blocks at the bottom of the board. 

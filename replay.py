@@ -150,6 +150,8 @@ if __name__ == '__main__':
 
 	line=f.readline()
 	f.close()
+	if line[0] == "[": line = line[1:]
+	if line[-1] == "]": line = line[:-1]
 	sequence=(line.rstrip('\n').split(', '))
 	sequence=[int(ii) for ii in sequence]
 
