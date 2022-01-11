@@ -27,7 +27,8 @@ import math
 import copy
 import time
 from collections import defaultdict
-import weighting
+import basic_weighting
+import advanced_weighting
 
 verbose=0
 startBeingVerboseAfterMoveNumber=9999 #If you are only interested in debug information after a certain move
@@ -703,12 +704,12 @@ def makeMove(gameBoard,chosenBox,calcWeights=True):
 	tot_time = end-tot_start
 
 	clust_start = time.time()
-	gameBoard.clusters = weighting.findCluster(gameBoard)
+	gameBoard.clusters = advanced_weighting.findCluster(gameBoard)
 	end = time.time()
 	clust_time = end-clust_start
 	if calcWeights:
 		weight_start = time.time()
-		gameBoard.weights = weighting.findWeights(gameBoard)
+		gameBoard.weights = advanced_weighting.findWeights(gameBoard)
 		end = time.time()
 		weight_time = end-weight_start
 	else:

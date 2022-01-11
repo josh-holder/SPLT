@@ -1,4 +1,4 @@
-from weighting import findWeights
+from advanced_weighting import findWeights
 import core_update as core
 import sys
 from PyQt5.QtWidgets import QWidget, QApplication

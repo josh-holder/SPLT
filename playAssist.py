@@ -1,5 +1,5 @@
 #the program allows you to leverage the algorithm to 
-from weighting import findWeights
+from advanced_weighting import findWeights
 from replayWithAlgo import gameBoardDisplay
 import core_update as core
 import sys
