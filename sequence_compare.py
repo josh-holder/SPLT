@@ -1,3 +1,9 @@
+"""
+Compare two sequences listed in seq_file_list and determines where they begin to differ.
+
+run from command line w no command line arguments
+"""
+
 import sys
 if __name__ == "__main__":
     seq_file_list = ["sequences/1043seq.txt","sequences/1053seq.txt"]

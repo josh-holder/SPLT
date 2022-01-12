@@ -1,3 +1,7 @@
+"""
+Replay a sequence, with visual cues about where it and the algorithm differ.
+"""
+
 from weighting import findWeights
 import core_update as core
 import sys

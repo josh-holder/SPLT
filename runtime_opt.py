@@ -1,11 +1,4 @@
-import sys 
-import math
-import os
 import core_update as core_weight
-import multiprocessing
-import copy
-import random
-import datetime
 import time
 
 def TimeCalc():

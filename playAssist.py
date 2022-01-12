@@ -1,3 +1,11 @@
+"""
+Tool to explore games of SPL-T manually.
+
+Options to follow an existing sequence, back up,
+follow the algorithm recommendation, get more detailed info on weights,
+and manually select boxes to split.
+"""
+
 from weighting import findWeights
 from replayWithAlgo import gameBoardDisplay
 import core_update as core
@@ -40,8 +48,9 @@ if __name__ == "__main__":
 
     graphicalDisplay = gameBoardDisplay(gameBoard)
 
-    print("Type number of box to split if desired,\nw to display weights, ww for verbose weights,\nand b to begin rewind")
-    print("Default Record: {}".format(playUntilEnd(deepcopy(gameBoard))))
+    print("Type number of box to split if desired,\nw to display weights, ww for verbose weights,\
+        \nb to begin rewind, and s__ to jump ahead by __ splits along the provided sequence.")
+    print("Default Algorithm Record: {}".format(playUntilEnd(deepcopy(gameBoard))))
 
     while 1:
         moveOptions = gameBoard.getMoveOptions()

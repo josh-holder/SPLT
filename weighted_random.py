@@ -1,3 +1,11 @@
+"""
+Plays SPL-T in a pseudorandom fashion, using weights as probabilities
+rather than pure weights.
+
+Was not found to work super well - the weights are tuned to be descriptive
+when compared to another but not as probabilities.
+"""
+
 import sys 
 import math
 import os

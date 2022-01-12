@@ -1,15 +1,17 @@
-import sys 
-import math
-import os
+"""
+Uses the weighting defined in weighting.py to play a game of SPL-T until the end,
+recording how long it is before defeat.
+
+Usage - "python3 algorithm_play.py"
+"""
+
 import core_update as core
-import multiprocessing
-import copy
-import random
-import datetime
-import time
 
 def playUntilEnd(gameBoard):
-
+	"""
+	Given a gameboard, takes the best move as recommended by the weighting
+	until it runs out of splits
+	"""
 	while 1:
 		moveOptions = gameBoard.getMoveOptions()
 

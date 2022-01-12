@@ -20,6 +20,8 @@ Example usages:
 	# Draw a gameboard in ascii in the console:
 	core.drawScreen(gameBoard)
 
+Core update also contains weight properties for each box, which allows the algorithm to determine the best course of action.
+
 """
 
 
