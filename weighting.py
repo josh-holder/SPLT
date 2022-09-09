@@ -723,6 +723,15 @@ def findWeights(gameBoard,weightverbose=0):
 
 			#----------------------AVOID TRIPLE EDGE CASE----------------
 			#if splitting a block would prevent you from creating a cluster below, weight it very slightly less
+			# -------			-------	            -------		
+			# |     |			|  |  |             |     |
+			# -------			-------             -------
+			# |     |	THIS	|	  |	    NOT     |  |  | 
+			# ------- 	---->   -------   --XX-->   ------- 
+			# |  |  |           |  |  |             |  |  |
+			# |  |  |           |  |  |             |  |  |
+			# |  |  |           |  |  |             |  |  |
+			# -------           -------             -------
 			weightToAdd = 0
 			if boxToBeWeighted.width == 2 and boxToBeWeighted.height == 1 and gameBoard.splitAction == VERTICAL:
 				#check if there is a small box and tall box below
