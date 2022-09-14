@@ -129,7 +129,7 @@ if __name__ == "__main__":
 
             newAlgoMaxLength = playUntilEnd(deepcopy(gameBoard))
             print("New algorithm split record: %d" % newAlgoMaxLength)
-
+            
 
         elif userinput == "b":
             rewind = int(input("Input how many steps you want to rewind:"))

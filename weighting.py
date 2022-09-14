@@ -9,12 +9,92 @@ timingInfo = 0
 HORIZONTAL='-'
 VERTICAL='|'
 
+def findSplitsUntilFall(gameBoard):
+	"""
+	Given a gameboard object, finds the points until each block falls.
+	INPUT: gameBoard object
+	OUTPUT: splitsUntilFall, a dictionary with form {blockIndex:splits_until_fall}
+	pointBlocksBelow, a dictionary with form {blockIndex:[points of point blocks below]}
+	"""
+	if timingInfo: start = time.time()
+	splitsUntilFall = {}
+	pointBlocksBelow = defaultdict(list)
+
+	# explosionImminent = 0
+	# for box in gameBoard.box:
+	# 	if box.points == 1:
+	# 		explosionImminent = 1
+
+	sufverbose = 0
+
+	if sufverbose: print("Initializing splitsUntilFall of bottom row")
+
+	#initialize the bottom row first
+	for boxIndex in gameBoard.boxesInRow[gameBoard.height]:
+		box = gameBoard.box[boxIndex]
+		splitsUntilFall[boxIndex] = box.points
+		pointBlocksBelow[boxIndex] = [box.points]
+
+	#iterate through every other row, box by box
+	for row in range(gameBoard.height-1,0,-1):
+		if sufverbose: print("~~~Finding splits until fall of row " + str(row)+ "~~~")
+
+		for boxIndex in gameBoard.boxesInRow[row]:
+			if sufverbose: print("Calculating for box index " + str(boxIndex))
+
+			box = gameBoard.box[boxIndex]
+			maxSplitsToFall = 0
+
+			#iterates through boxes in row directly below
+			for otherBoxIndex in gameBoard.boxesInRow[row+1]:
+				otherBox = gameBoard.box[otherBoxIndex]
+
+				#SPECIAL CASE: When the split is vertical AND the box does not have points AND there is a point block about to explode AND a cluster would be formed, 
+				#it actually will fall in two parts and matter
+				#if explosionImminent and box.points == 0 and gameBoard.splitAction==VERTICAL:
+					#find the splitsuntilfall for both sides of the block seperately, then take the smaller one of the two and make that splitsUntillFall.
+					#NEEDS TO BE IMPLEMENTED, probably doesnt matter in most scenarios
+
+				#only selects boxes in the correct columns to be below the box you're looking at
+				if otherBox.x+otherBox.width > box.x and otherBox.x < box.x+box.width:
+					if sufverbose: print("Box with index " + str(otherBoxIndex) + " is directly below. This box has " + str(splitsUntilFall[otherBoxIndex]) + " splits until fall.")
+					
+					if splitsUntilFall[otherBoxIndex] == 0:
+						if sufverbose: print("This box below will not fall, so therefore the box above will not fall either.")
+						maxSplitsToFall = 0
+						break
+					#finds box directly under the current box that will fall the latest
+					if splitsUntilFall[otherBoxIndex] > maxSplitsToFall:
+						if sufverbose: print("This is the new high splits until fall, so we update the max.")
+						maxSplitsToFall = splitsUntilFall[otherBoxIndex]
+						pointBlocksBelow[boxIndex] = copy.copy(pointBlocksBelow[otherBoxIndex])
+
+
+			#the box will fall when its points run out, or a block below falls: whichever comes first. However, we only want to do this when the points are nonzero.
+			if box.points != 0 and maxSplitsToFall != 0:
+
+				#if it was also a point block, just one of higher value than the minimum, add it's points to pointBlocksBelow
+				if box.points > maxSplitsToFall and box.points not in pointBlocksBelow[boxIndex]:
+					pointBlocksBelow[boxIndex].append(box.points)
+
+				splitsUntilFall[boxIndex] = min([box.points,maxSplitsToFall])
+			else:
+				splitsUntilFall[boxIndex] = maxSplitsToFall
+
+			if sufverbose: print("We choose the minimum between " + str(box.points)+" and "+str(maxSplitsToFall)+" (excluding zero), yielding "+str(splitsUntilFall[boxIndex])+" for box "+str(boxIndex))
+	
+	if timingInfo: 
+		end = time.time()
+		print("Time to find splits until fall for turn "+str(curr_splits)+": "+str(end-start))
+
+	return splitsUntilFall, pointBlocksBelow
+
 def findCluster(gameBoard):
 	#Given a gameBoard, finds the clusters that would be caused by a split of any box in the board
 	#INPUT: gameBoard, the gameboard object
 	#OUTPUT: clusters, a list of sets. Each inner set contains the indices of boxes that are involved in a cluster when a given box is split.
 	#The inner list is an empty list when splitting a given box results in no cluster
-
+	#written in this gross way for efficiency reasons
 	if timingInfo: start = time.time()
 	clusters = []
 	
@@ -179,88 +259,11 @@ def findCluster(gameBoard):
 		end = time.time()
 		print("Time to find clusters for turn "+str(curr_splits)+": "+str(end-start))
 	return clusters
-
-def findSplitsUntilFall(gameBoard):
-	"""
-	Given a gameboard object, finds the points until each block falls.
-	INPUT: gameBoard object
-	OUTPUT: splitsUntilFall, a dictionary with form {blockIndex:splits_until_fall}
-	pointBlocksBelow, a dictionary with form {blockIndex:[points of point blocks below]}
-	"""
-	if timingInfo: start = time.time()
-	splitsUntilFall = {}
-	pointBlocksBelow = defaultdict(list)
-
-	# explosionImminent = 0
-	# for box in gameBoard.box:
-	# 	if box.points == 1:
-	# 		explosionImminent = 1
-
-	sufverbose = 0
-
-	if sufverbose: print("Initializing splitsUntilFall of bottom row")
-
-	#initialize the bottom row first
-	for boxIndex in gameBoard.boxesInRow[gameBoard.height]:
-		box = gameBoard.box[boxIndex]
-		splitsUntilFall[boxIndex] = box.points
-		pointBlocksBelow[boxIndex] = [box.points]
-
-	#iterate through every other row, box by box
-	for row in range(gameBoard.height-1,0,-1):
-		if sufverbose: print("~~~Finding splits until fall of row " + str(row)+ "~~~")
-
-		for boxIndex in gameBoard.boxesInRow[row]:
-			if sufverbose: print("Calculating for box index " + str(boxIndex))
-
-			box = gameBoard.box[boxIndex]
-			maxSplitsToFall = 0
-
-			#iterates through boxes in row directly below
-			for otherBoxIndex in gameBoard.boxesInRow[row+1]:
-				otherBox = gameBoard.box[otherBoxIndex]
-
-				#SPECIAL CASE: When the split is vertical AND the box does not have points AND there is a point block about to explode AND a cluster would be formed, 
-				#it actually will fall in two parts and matter
-				#if explosionImminent and box.points == 0 and gameBoard.splitAction==VERTICAL:
-					#find the splitsuntilfall for both sides of the block seperately, then take the smaller one of the two and make that splitsUntillFall.
-					#NEEDS TO BE IMPLEMENTED, probably doesnt matter in most scenarios
-
-				#only selects boxes in the correct columns to be below the box you're looking at
-				if otherBox.x+otherBox.width > box.x and otherBox.x < box.x+box.width:
-					if sufverbose: print("Box with index " + str(otherBoxIndex) + " is directly below. This box has " + str(splitsUntilFall[otherBoxIndex]) + " splits until fall.")
-					
-					if splitsUntilFall[otherBoxIndex] == 0:
-						if sufverbose: print("This box below will not fall, so therefore the box above will not fall either.")
-						maxSplitsToFall = 0
-						break
-					#finds box directly under the current box that will fall the latest
-					if splitsUntilFall[otherBoxIndex] > maxSplitsToFall:
-						if sufverbose: print("This is the new high splits until fall, so we update the max.")
-						maxSplitsToFall = splitsUntilFall[otherBoxIndex]
-						pointBlocksBelow[boxIndex] = copy.copy(pointBlocksBelow[otherBoxIndex])
-
-
-			#the box with fall when its points run out, or a block below falls: whichever comes first. However, we only want to do this when the points are nonzero.
-			if box.points != 0 and maxSplitsToFall != 0:
-
-				#if it was also a point block, just one of higher value than the minimum, add it's points to pointBlocksBelow
-				if box.points > maxSplitsToFall and box.points not in pointBlocksBelow[boxIndex]:
-					pointBlocksBelow[boxIndex].append(box.points)
-
-				splitsUntilFall[boxIndex] = min([box.points,maxSplitsToFall])
-			else:
-				splitsUntilFall[boxIndex] = maxSplitsToFall
-
-			if sufverbose: print("We choose the minimum between " + str(box.points)+" and "+str(maxSplitsToFall)+" (excluding zero), yielding "+str(splitsUntilFall[boxIndex])+" for box "+str(boxIndex))
-	
-	if timingInfo: 
-		end = time.time()
-		print("Time to find splits until fall for turn "+str(curr_splits)+": "+str(end-start))
-
-	return splitsUntilFall, pointBlocksBelow
 	
 def findSoonestSplit(gameBoard):
+	"""
+	deprecated
+	"""
 	soonest_split = float('inf')
 	for box in gameBoard.box:
 		if box.points != 0 and box.points:
@@ -273,7 +276,7 @@ def findLowestAvailableBox(gameBoard):
 	Given a gameboard, determines the lowest box without points to split in the column.
 	Based on the assumption that the gameboard will be organized into 4 clear columns and
 	8 clear rows, we only save information on this. (This will only be used to influence
-	splits after 300 splits, when the board has stabilized into this predicatbale form.)
+	splits after 300 splits, when the board has stabilized into this predictable form.)
 	INPUTS: gameBoard, the current gameBoard object
 	OUTPUTS: lowest_in_col, a dictionary
 		-keys corresponding to column number (x=0-1->col=0, x=2-3->col=1, etc.)
@@ -288,6 +291,32 @@ def findLowestAvailableBox(gameBoard):
 				lowest_in_col[col] = row
 
 	return lowest_in_col
+
+def doesPointBlockCauseNewHalving(stack_below, curr_splits):
+	"""
+	Given a sequence of blocks, determines if adding a new point block above will result in a new halving.
+
+	For example, if on split 35 the candidate point block is on blocks with 2 and 13 splits until fall,
+	stacks_below will contain [2, 13], and for the purposes of calculating if the
+	point block causes a new halving, the stack will be [1, 12, 36]
+	"""
+	
+	full_stack_after_pb = [splits-1 for splits in stack_below]
+	full_stack_after_pb.append(curr_splits+1)
+
+	curr_stack = full_stack_after_pb
+	#if there are more than 2 blocks in the stack, you still need to perform
+	#a halving to see if the final two blocks will be the same value
+	while len(curr_stack) > 2:
+		lowest_block = curr_stack.pop(0)
+		curr_stack = [block - lowest_block for block in curr_stack]
+
+		for i, block in enumerate(curr_stack):
+			curr_stack[i] = max(1, block//2) #splits round down, unless the block is at 1
+
+	if curr_stack[0] != curr_stack[1]:
+		return True
+	else: return False
 
 def findWeights(gameBoard,weightverbose=0):
 	"""
@@ -468,7 +497,7 @@ def findWeights(gameBoard,weightverbose=0):
 					if difference >= 2**extraSplitsBelow:
 						if weightverbose: print("This difference is enough to cause another halving, so we increase the block's weight.")
 						#eyeballed to add 40 points of weight when this is the last chance to create the cluster, exponentially decreasing to 20 points when it is not urgent
-						#If the difference is less than 2^(splitsUntilFall+1), then decrease the weight increase by 15% because its harder to 
+						#If the difference is less than 2^(number of halvings+1), then decrease the weight increase by 15% because its harder to 
 						#take full advantage of the double split, but it's still a double split
 						turns = math.ceil(splitsUntilFall[boxToBeWeightedIndex]/2)
 
@@ -781,9 +810,34 @@ def findWeights(gameBoard,weightverbose=0):
 
 if __name__ == '__main__':
 	gb = core.Board()
-	core.makeMove(gb,0)
-	core.makeMove(gb,0)
-	core.makeMove(gb,0)
+	# core.makeMove(gb,0)
+	# core.makeMove(gb,0)
+	# core.makeMove(gb,0)
+	# core.makeMove(gb,0)
+	# core.makeMove(gb,1)
+	# findCluster(gb)
+
 	core.makeMove(gb,0)
 	core.makeMove(gb,1)
-	findCluster(gb)
+	core.makeMove(gb,2)
+	core.makeMove(gb,3)
+	core.makeMove(gb,3)
+	core.makeMove(gb,2)
+	core.makeMove(gb,4)
+	core.makeMove(gb,1)
+	core.makeMove(gb,6)
+	core.makeMove(gb,6)
+	core.makeMove(gb,6)
+	core.makeMove(gb,9)
+	core.makeMove(gb,10)
+	core.makeMove(gb,0)
+	core.makeMove(gb,5)
+	core.makeMove(gb,10)
+	core.makeMove(gb,8)
+	core.drawScreen(gb)
+
+	suf, pbb = findSplitsUntilFall(gb)
+	print(suf)
+	print(pbb)
+
+	print(doesPointBlockCauseNewHalving([3, 12, 12], 12))
