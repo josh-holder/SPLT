@@ -570,7 +570,7 @@ def findWeights(gameBoard,weightverbose=0):
 					if doesPointBlockCauseNewHalving(gameBoard, boxToBeWeightedIndex):
 						# weightToAdd = 2*(22.1475/(1+.1518*math.exp(1.14*turns)))
 						weightToAdd = 15 #If you're creating a new halving, you always wanna do this! The sooner you do this, the sooner you can make another
-						weightToAdd = -15/14*splitsUntilFall[boxToBeWeightedIndex]+15+15/14
+						weightToAdd = max(5,-15/14*splitsUntilFall[boxToBeWeightedIndex]+15+15/14)
 						if weightverbose: print(f"There is an extra halving that occurs by splitting this block. Add {weightToAdd} points!")
 					else:
 						#eyeballed to add 20 points of weight when this is the last chance to create the cluster, exponentially decreasing to 0 points when it is not urgent
@@ -668,14 +668,14 @@ def findWeights(gameBoard,weightverbose=0):
 					if candHeight> maxHeight:
 						maxHeight = candHeight
 
-				weightToAdd = 20*(maxHeight/gameBoard.height)**2
+				weightToAdd = 30*(maxHeight/gameBoard.height)**2
 
 				if weightverbose: 
 					print("This will create point blocks with a bottom at "+str(maxHeight)+".")
 					print("Add " + str(weightToAdd) + " weight.")
 			
 			else:
-				weightToAdd = 10*((boxToBeWeighted.y+boxToBeWeighted.height)/gameBoard.height)**2
+				weightToAdd = 15*((boxToBeWeighted.y+boxToBeWeighted.height)/gameBoard.height)**2
 
 				if weightverbose: 
 					print("Bottom of the block is at "+str(boxToBeWeighted.y+boxToBeWeighted.height)+", but will not create a point block.")
