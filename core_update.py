@@ -45,7 +45,7 @@ class Board(object): # Board class represents the gameboard during play.
 
 	def __init__(self,width=None,height=None,splitRecord=None):
 		self.width=width if width is not None else 8
-		self.height=height if width is not None else 16
+		self.height=height if height is not None else 16
 		self.splitRecord=splitRecord if splitRecord is not None else []
 		self.score=0
 		self.box=[]
@@ -210,7 +210,7 @@ def drawScreen(gameBoard):
 	updateScreenBuffer(gameBoard)
 	for jj in range((gameBoard.height*2)+1):
 		for ii in range((gameBoard.width*2)+1):
-			print(gameBoard.screenBuffer[jj][ii],end="")
+			print(gameBoard.screenBuffer[jj][ii],end=" ")
 		print(" ")	
 
 def getScreenString(gameBoard):
