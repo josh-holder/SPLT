@@ -79,6 +79,363 @@ def findSplitsUntilFall(gameBoard):
 
 	return splitsUntilFall
 
+def doesUnexpectedClusterForm(gameBoard,chosenBox):
+	"""
+	Modelled strongly off of makeMove in core_update.py. Aims to answer the question of
+	whether or not a cluster forms unexpectedly by falling blocks. Removes all parts of
+	makeMove which do not serve this purpose and returns True if an unexpected cluster is formed,
+	and False otherwise.
+
+	Must pass a duplicate of gmaeBoard to the function, as objects will be edited in place over the
+	course of the calculations.
+	"""
+	##########################################	
+
+	# -------- 1. Try to execute the split: -------------------------------------------------------------------------------------
+	#
+	if gameBoard.split(gameBoard.box[chosenBox])==0: exit()
+
+	gameBoard.splitRecord.append(chosenBox)
+
+	# -------- 2. Determine whether four or more similar boxes are now adjacent   -----------------------------------------------
+	#
+	# Algorithm:
+	# 	Scan through all boxes, for each check whether it is in the upper left hand corner of a set of at least 4 identical boxes
+	#
+	# 	If there is a set of 6, it will register twice: once as the correct set of 6 plus another again as a subset of 4
+	# 	This doesn't matter beyond efficiency concerns! The end effect is still correct
+
+	# 	Optimization: The only clusters that could have formed at this stage involve the box you just split
+	# 	So while scanning through the boxes, only subscan boxes which are the same size (box equality method compares size)
+	
+	#We've already scanned and found which blocks would be clusters, so we just read them off from the clusters variable
+	pointsToAdd = len(gameBoard.splitRecord)+1
+
+	for index in gameBoard.clusters[chosenBox]:
+		gameBoard.box[index].points = pointsToAdd
+
+	# -------- 3. Process decrement of point blocks  ----------------------------------------------------------------------------
+	#
+	for box in gameBoard.box:
+		if box.points>1:
+			box.points-=1
+
+		elif box.points==1:
+			box.points=-1 #-1 is a special value to denote 'just exploded'
+		else:
+			pass
+
+
+
+	# -------- 4. Process destruction of point blocks which have counted down to zero -------------------------------------------
+	#
+	rowsWithDestruction=[]
+
+	for box in gameBoard.box:
+		if box.points<0: #box should be destroyed
+			for ii in range(box.y,box.y+box.height):
+				if not ii in rowsWithDestruction: rowsWithDestruction.append(ii)
+	#Remove the boxes from gameBoard.box[]
+	gameBoard.box[:] = [box for box in gameBoard.box if box.points>=0]
+
+	# -------- 5. Process falling of blocks which now have voids below them -----------------------------------------------------
+	#
+	# e.g.
+	#		   __	 	
+	#		  |__|  
+	#          		-->	  __    
+	#		   __	 	 |__| 
+	#		  |__|  	 |__|			     
+	# 
+	#
+	# We do this by looping through every box. If a box falls, it may causes other boxes 
+	# above it to also fall. So we then loop again, and repeat until there is no movement of any block
+
+	core.updateScreenBuffer(gameBoard)
+
+	columnsWithFalling=[]
+
+	#Optimization: first figure out which columns have voids. We can then cheaply check whether a box is eligible for falling
+	columnsWithVoids=[]
+
+	for ii in range(gameBoard.width):	
+		for jj in range(gameBoard.height):
+			if gameBoard.screenBuffer[((jj)*2)+1][((ii)*2)+1] =='*':
+				if not ii in columnsWithVoids: columnsWithVoids.append(ii)
+
+
+	fallingHappened=False
+	movementScanRequired=True
+
+	while movementScanRequired is True: # Continue looping until nothing falls
+
+		movementScanRequired=False #Assume nothing falls - we'll reset this if needed
+
+		for boxindex,box in enumerate(gameBoard.box):	
+
+			if not box.x in columnsWithVoids:	#The left side of this box is not on a column with voids in it, so it can't fall
+				pass
+
+			elif (box.y+box.height==gameBoard.height): #This box is already on the floor, so it can't fall
+				pass 
+
+			else: 				
+				# We want to know if every tile in contact with the bottom edge of this box is void, and to what 
+				# depth that is true. An easy way to do it is by looking at the ascii screen buffer
+				
+				distanceToFall=9999 #assume the box will fall a long way, then adjust it down to the true value
+				
+				for ii in range(box.width):
+					
+					stopFound=False	
+					jj=0	# jj= number of voids below the ii'th column of this box
+					while stopFound==False:
+						if box.y+box.height+jj<gameBoard.height:
+							if gameBoard.screenBuffer[((box.y+jj+box.height)*2)+1][((box.x+ii)*2)+1] !='*':
+								stopFound=True
+							else:
+								jj+=1	
+						else:
+							stopFound=True
+
+					if jj<distanceToFall:
+						distanceToFall=jj
+
+					if jj==0:	#If any column of the box has no voids below it, it can't fall so we can stop immediately.
+						break
+
+				# If falling needs to happen, do it
+				if distanceToFall>0:
+					box.modify(box.x,box.y+distanceToFall,box.width,box.height,box.points)
+					if box.points>0: box.fellFlag=1 	#Make a note to halve the points later - it's too soon to do it now
+					fallingHappened=True
+
+					for ii in range(box.x,box.x+box.width):
+						if not ii in columnsWithFalling: columnsWithFalling.append(ii)
+
+					core.updateScreenBuffer(gameBoard)
+
+					movementScanRequired=True 	#Setting this flag causes the parent loop to run through all blocks one more time
+
+				# else this box should not fall
+				else:
+					pass 
+
+	columnsWithFalling.sort()
+
+	# -------- 6. Process new blocks coming in from the top ---------------------------------------------------------------------
+	#
+
+	#------------- 6.1. Scan across columns to maps out the space that need filling ----------
+	# 	
+	# There is some strangeness here: pre-existing voids are never filled, unless a block has fallen through it.
+	# For this reason we kept track of 'columnsWithFalling'
+
+	core.updateScreenBuffer(gameBoard)	
+	voidCount=0
+	numVoids=[] #If for example the gameboard has a 2x2 pocket in the upper left corner, numVoids will be [2,2,0,0,0,0,0,0]
+
+	if len(columnsWithFalling)==0 and len(rowsWithDestruction)>0:
+		for column in range(gameBoard.width):	#For each column on the game board		
+			row=0 				#Start scanning down the rows starting at zero (top of the board)
+			stopRowScan=False 
+						
+			while stopRowScan==False:
+				if gameBoard.screenBuffer[(row*2)+1][(column*2)+1] =='*' and row in rowsWithDestruction: voidCount+=1
+				else: stopRowScan=True # As soon as you hit a non-void, you're done with this column
+
+				row+=1
+
+				# If you get to the bottom of the game board, you're done. -1 because we count rows from zero
+				if row>(gameBoard.height-1): stopRowScan=True	
+
+			numVoids.append(voidCount)
+			voidCount=0		
+	else:
+		for column in range(gameBoard.width):	
+			row=0 				#Start scanning down the rows starting at zero (top of the board)
+			stopRowScan=False 
+						
+			while stopRowScan==False:
+				if gameBoard.screenBuffer[(row*2)+1][(column*2)+1] =='*': voidCount+=1
+				else: stopRowScan=True # As soon as you hit a non-void, you're done with this column
+
+				row+=1
+
+				# If you get to the bottom of the game board, you're done. -1 because we count rows from zero
+				if row>(gameBoard.height-1): stopRowScan=True
+
+			numVoids.append(voidCount)
+			voidCount=0
+
+	#------------- 6.2. Fill the space with new blocks from the top ----------
+	# 	
+
+	if all(ii == 0 for ii in numVoids):
+		continueFilling=False	
+
+	# If you have partially filled the void, at what height should the next filling block be placed?
+	# numVoidsOffset array tells you this. If numVoids=[6,6,0,0,0,0,0,0] and numVoidsOffset=[4,4,0,0,0,0,0,0],
+	# then the final 2x2 block you make should be positioned at a y value of (6-4)=2 
+	numVoidsOffset=[]	
+	for column in range(gameBoard.width):
+		numVoidsOffset.append(0)
+
+	continueFilling=True
+	fillingHappened=False
+
+	while continueFilling==True:
+	
+		if all(v == 0 for v in numVoids):
+			continueFilling=False
+			break
+		
+		#	Scan through the numVoids list left to right. Identify the the first isolated pocket you come across 
+		#	(i.e. bordered by an edge or zero depth).
+
+		pocketFound=0
+
+		for index,voidCount in enumerate(numVoids):
+			if voidCount>0 and pocketFound==0:
+				pocketFound=1
+				pocketStartIndex=index
+
+			if voidCount==0 and pocketFound==1:
+				pocketEndIndex=index-1
+				pocketFound=2
+
+
+		if pocketFound==1:
+			pocketEndIndex=index
+		
+
+		#	Identify the deepest depth in this pocket. Create the largest single block which will fit in it, subject to some extra rules:
+		#
+		#	1. Only pieces with side lengths of 2^n can exist on the board. This means, for example, that a 6xN void is filled by 
+		#		a 4xN block and a 2xN block
+		#
+		#	2. 1xN or Nx1 voids are ignored 
+		#
+		#	3. When multiple blocks are required, filling happens from the bottom up, not top down.
+
+		if pocketStartIndex==pocketEndIndex:
+			numVoids[pocketStartIndex]=0
+		else:
+			deepestDepth=max(numVoids[pocketStartIndex:pocketEndIndex+1])
+			valleyStartX=numVoids.index(deepestDepth)
+
+			# The pocket may consist of a 'cityscape' profile rather than a simple flat bottom
+			# For this reason we identify the deepest valley in the pocket, and treat that as the subspace to be filled
+			
+			valleyWidth=0
+			for ii in numVoids[valleyStartX:]:
+				if ii==deepestDepth:	valleyWidth+=1
+				else:break
+		
+			# Round the width down to the nearest 2^n value
+			reducedWidth=0
+			for ii in [1,2,4,8,16,32]:
+				if valleyWidth>=ii:
+					reducedWidth=ii
+			valleyWidth=reducedWidth
+
+			if valleyWidth==1:
+				for jj in range(0,valleyWidth):
+					numVoids[valleyStartX+jj]-=1
+					numVoidsOffset[valleyStartX+jj]+=1
+
+			elif (deepestDepth%2==1):
+				for jj in range(0,valleyWidth):
+					numVoids[valleyStartX+jj]-=1
+					numVoidsOffset[valleyStartX+jj]+=1
+
+			else:
+				for ii in [32,16,8,4,2]:
+					
+					if deepestDepth>=ii:
+
+						height=ii
+						y=numVoids[valleyStartX]-height	+numVoidsOffset[valleyStartX]
+						y=0
+						gameBoard.makeBox(valleyStartX,y,valleyWidth,height,0)
+						core.updateScreenBuffer(gameBoard)
+
+						distanceToFall=999
+						for kk in range(valleyStartX,valleyStartX+valleyWidth):
+							stopFound=False
+							jj=0
+							while stopFound==False:
+								if height+jj<gameBoard.height:
+									if gameBoard.screenBuffer[((height+jj)*2)+1][((kk)*2)+1] !='*':
+										stopFound=True
+									else:
+										jj+=1
+								else:
+									stopFound=True
+
+							if distanceToFall>jj:
+								distanceToFall=jj
+
+						if distanceToFall>0:	
+							box=gameBoard.box[-1]
+							box.modify(box.x,box.y+distanceToFall,box.width,box.height,box.points)
+
+						core.updateScreenBuffer(gameBoard)
+						fillingHappened=True
+						for jj in range(0,valleyWidth):
+							numVoids[valleyStartX+jj]-=ii
+							deepestDepth-=ii
+
+
+	# -------- 7. Determine whether four or more similar boxes are now adjacent   -----------------------------------------------
+	#
+	#	This is almost a copy paste of step 2, except there we only had to look in the vicinity of the box we just split. Now we
+	#	have to scan all boxes
+	if fallingHappened:
+		for box in gameBoard.box:
+			if box.points==0:
+				
+				setMembers=[] #Set of identical neighbours for this box	
+
+				for otherboxindex,otherbox in enumerate(gameBoard.box):
+					if otherbox.points==0:
+						if box==otherbox:	#Equality method compares width, height and number of points.				
+							# If otherbox is beside box
+							if otherbox.x==(box.x+box.width) and otherbox.y==box.y:	setMembers.append(otherboxindex)
+							# If otherbox is diagonal to box
+							elif otherbox.x==(box.x+box.width) and otherbox.y==(box.y+box.height):	setMembers.append(otherboxindex)
+							# If otherbox is below box
+							elif otherbox.x==box.x and otherbox.y==(box.y+box.height):	setMembers.append(otherboxindex)
+
+				if len(setMembers)==3:
+					# We found a set of four, and {box} is the one in the upper left
+					# So we should assign points to the whole set
+					# For now we just make a note to assign these points, but don't actually do it until the end of the scan. Otherwise we'll mess up the ongoing scan
+					# e.g. if you find a group of 4 and immediately make them point blocks, you will not notice if they are actually part of 6+ block cluster
+					box.temppoints=len(gameBoard.splitRecord)+1
+					gameBoard.box[setMembers[0]].temppoints=len(gameBoard.splitRecord)+1
+					gameBoard.box[setMembers[1]].temppoints=len(gameBoard.splitRecord)+1
+					gameBoard.box[setMembers[2]].temppoints=len(gameBoard.splitRecord)+1
+					return True
+
+		# Any newly created clusters should also be immediately decremented and points awarded (they weren't around when the rest of the blocks had this done)
+		for box in gameBoard.box:
+			if box.temppoints != 0:
+				box.points+=box.temppoints-1
+				countDownScore+=1
+				box.temppoints=0
+
+	# -------- 8. Process halving of points from falling   ----------------------------------------------------------------------
+	#
+	#	Simogo's SPL-T rounds UP, e.g if a 5 point block falls the new point count will be 3 instead of 2
+	#   not necessary
+	
+	#-------------------------------UPDATES GAMEBOARD PROPERTIES----------------------
+    #updates number of horizontal and vertical splits in the gameboard (adds for each box with no points)
+	# not necessary
+
+	return False
+
 def findCluster(gameBoard):
 	#Given a gameBoard, finds the clusters that would be caused by a split of any box in the board
 	#INPUT: gameBoard, the gameboard object
@@ -249,17 +606,6 @@ def findCluster(gameBoard):
 		end = time.time()
 		print("Time to find clusters for turn "+str(curr_splits)+": "+str(end-start))
 	return clusters
-	
-def findSoonestSplit(gameBoard):
-	"""
-	deprecated
-	"""
-	soonest_split = float('inf')
-	for box in gameBoard.box:
-		if box.points != 0 and box.points:
-			splitsLeft += (box.width * box.height) - 1
-	
-	return splitsLeft
 
 def findLowestAvailableBox(gameBoard):
 	"""
