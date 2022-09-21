@@ -52,6 +52,7 @@ if __name__ == "__main__":
     print("Red highlight = followed sequence next move")
     print("Green fill = splitting this box causes a new halving")
     print("Red fill = splitting this box causes an unexpected halving")
+    print("------------------------")
     print("Type number of box to split if desired,\nw to display weights, ww for verbose weights,\
         \nb to begin rewind, and s__ to jump ahead by __ splits along the provided sequence.")
     print("Default Algorithm Record: {}".format(playUntilEnd(deepcopy(gameBoard))))
