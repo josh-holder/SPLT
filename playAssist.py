@@ -7,6 +7,7 @@ and manually select boxes to split.
 """
 
 from weighting import findWeights
+from weighting_new import doesPointBlockCauseNewHalving, doesUnexpectedClusterForm
 from replayWithAlgo import gameBoardDisplay
 import core_update as core
 import sys
@@ -19,11 +20,9 @@ from algorithm_play import playUntilEnd
 import itertools
 
 if __name__ == "__main__":
-    gameBoard = core.Board()
-
     saveName = "sequences/playAssist_seq.txt"
 
-    piggyBackSeqName = "sequences/1133seq.txt"
+    piggyBackSeqName = "sequences/1208seq.txt"
 
     try:
         f = open(piggyBackSeqName, "r")
@@ -54,7 +53,6 @@ if __name__ == "__main__":
 
     while 1:
         moveOptions = gameBoard.getMoveOptions()
-
         if len(moveOptions) == 0:
             core.drawScreen(gameBoard)
             print("Final Score: "+str(gameBoard.score))
@@ -73,14 +71,21 @@ if __name__ == "__main__":
                 break
 
         bestSplit = max(range(len(gameBoard.weights)), key=gameBoard.weights.__getitem__)
-        print("Split " + str(len(gameBoard.splitRecord)), end='\r')
 
         best_indices = [i for i, x in enumerate(gameBoard.weights) if x == max(gameBoard.weights)]
 
         graphicalDisplay.HighlightNextBox(bestSplit)
         graphicalDisplay.HighlightAlgoBoxes(best_indices)
-        graphicalDisplay.Update(gameBoard)
 
+        newHalvingOptions = []
+        unexpectedClusterOptions = []
+        for boxIndex in moveOptions:
+            if doesPointBlockCauseNewHalving(gameBoard, boxIndex): newHalvingOptions.append(boxIndex)
+            if doesUnexpectedClusterForm(gameBoard, boxIndex): unexpectedClusterOptions.append(boxIndex)
+        graphicalDisplay.PaintBoxesWhichCauseNewHalvings(newHalvingOptions)
+        graphicalDisplay.PaintBoxesWhichCauseUnexpectedClusters(unexpectedClusterOptions)
+        
+        graphicalDisplay.Update(gameBoard)
         userinput = input("Split %d:" % len(gameBoard.splitRecord))
         try: 
             userinput = int(userinput)
@@ -118,7 +123,6 @@ if __name__ == "__main__":
             newAlgoMaxLength = playUntilEnd(deepcopy(gameBoard))
             print("New algorithm split record: %d" % newAlgoMaxLength)
 
-
         elif (type(userinput) == type(1)):
             splitRequest = userinput
             if splitRequest not in moveOptions:
@@ -150,8 +154,9 @@ if __name__ == "__main__":
         else:
             core.makeMove(gameBoard,bestSplit)
             boards.append(deepcopy(gameBoard))
-        
     
+    print("?")
+    print(str(gameBoard.splitRecord))
     saveFile.write(str(gameBoard.splitRecord))
 
     sys.exit(app.exec_())

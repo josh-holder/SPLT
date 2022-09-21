@@ -228,7 +228,6 @@ def getScreenString(gameBoard):
 ##########################################
 def makeMove(gameBoard,chosenBox,calcWeights=True):
 	##########################################
-
 	global verbose
 	
 	tot_start = time.time()
@@ -245,8 +244,6 @@ def makeMove(gameBoard,chosenBox,calcWeights=True):
 
 	if len(gameBoard.splitRecord)>=startBeingVerboseAfterMoveNumber:
 		verbose=1
-
-
 
 
 	# -------- 2. Determine whether four or more similar boxes are now adjacent   -----------------------------------------------

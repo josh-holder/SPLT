@@ -26,7 +26,7 @@ if __name__ == "__main__":
 
 	#when piggyback=True, the first run will follow the provided sequence,
 	#allowing you to explore a promising sequence more deeply with the paranoid algorithm
-	piggyback = False
+	piggyback = True
 
 	continuation_name = "sequences/paranoid_final_continuation.pkl"
 	if continuation:
@@ -57,7 +57,7 @@ if __name__ == "__main__":
 
 	#If you want to explore from an already existing sequence:
 	if piggyback:
-		sequenceFile = "sequences/1030wpotential.txt" #provide sequence here
+		sequenceFile = "sequences/1017wpot.txt" #provide sequence here
 		try:
 			f = open(sequenceFile, "r")
 		except:
@@ -78,6 +78,8 @@ if __name__ == "__main__":
 
 		if len(moveOptions) == 0:
 			game_num += 1
+			print("Game {} - (restart {}, base {})".format(game_num,restart_splits,exploring_from), end='\r')
+
 			#Every 100 games, update the saved version of your continuation list
 			if game_num % 100 == 0:
 				with open(continuation_name,'wb') as cf:
@@ -132,8 +134,6 @@ if __name__ == "__main__":
 		if piggyback and game_num == 0: #if piggybacking, select moves from sequence at first
 			best_split_ind = piggyback_sequence[len(game_board.splitRecord)]
 
-		print("Game {}, Split {} - (restart {}, base {})".format(game_num,len(game_board.splitRecord),restart_splits,exploring_from), end='\r')
-
 		old_game_board = copy.deepcopy(game_board)
 
 		core.makeMove(game_board,best_split_ind)
@@ -144,10 +144,11 @@ if __name__ == "__main__":
 		most_recent_box = game_board.box[-1]
 
 		split_created_big_cluster = ((most_recent_box.points != 0) and (most_recent_box.width != 1 or most_recent_box.height != 1))
-		another_as_good_option = ((weight_diff < 3) and (weight_diff > 1) and len(game_board.splitRecord)>875)
+		another_as_good_option = ((weight_diff < 3) and (weight_diff > 1) and len(game_board.splitRecord)>600)
 		
 		#don't add all almost as good options because the problem becoms intractible
-		add_every_blank_good_options = 2
+		if len(game_board.splitRecord) < 875: add_every_blank_good_options = 3
+		else: add_every_blank_good_options = 2
 		if another_as_good_option:
 			almost_as_good_tracker = (another_as_good_option+1) % add_every_blank_good_options
 			if almost_as_good_tracker != 0:

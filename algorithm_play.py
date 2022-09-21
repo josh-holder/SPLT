@@ -41,16 +41,11 @@ if __name__ == "__main__":
 			print("Final Splits: "+str(len(gameBoard.splitRecord)))
 			break
 		
-		
-
 		bestSplit = max(range(len(gameBoard.weights)), key=gameBoard.weights.__getitem__)
 		print("Split " + str(len(gameBoard.splitRecord)), end='\r')
-		print(bestSplit, end = ", ")
 
 		sequence.append(bestSplit)
-
 		core.makeMove(gameBoard,bestSplit)
-	
 	
 	saveFile.write(str(gameBoard.splitRecord))
 	saveFile.close()

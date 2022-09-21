@@ -49,7 +49,7 @@ def playSplitRandomly(gameBoard):
 		nextMove=random.choice(moveOptions)
 
 
-		core.makeMove(gameBoard,nextMove)
+		core.makeMove(gameBoard,nextMove,calcWeights=False)
 
 def playSplitWeighted(gameBoard):
 	#Play a single game of SPL-T

@@ -117,6 +117,8 @@ if __name__ == "__main__":
 						lf.write(getScreenString(game_board))
 						lf.write("Sequence:\n{}\n".format(game_board.splitRecord))
 						print('\007',end='\r') #play boop
+				
+				print("Game {} - (restart {}, base {})".format(game_num,len(game_board.splitRecord),restart_splits,exploring_from), end='\r')
 
 			#remove double weights for tractability
 			seen_weights = set()
@@ -137,8 +139,6 @@ if __name__ == "__main__":
 
 			if len(game_board.splitRecord) < len(random_start_sequence): #select from random start first
 				best_split_ind = random_start_sequence[len(game_board.splitRecord)]
-
-			print("Game {}, Split {} - (restart {}, base {})".format(game_num,len(game_board.splitRecord),restart_splits,exploring_from), end='\r')
 
 			old_game_board = copy.deepcopy(game_board)
 

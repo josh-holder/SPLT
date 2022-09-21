@@ -3,6 +3,7 @@ Replay a sequence, with visual cues about where it and the algorithm differ.
 """
 
 from weighting import findWeights
+from weighting_new import doesPointBlockCauseNewHalving, doesUnexpectedClusterForm
 import core_update as core
 import sys
 from PyQt5.QtWidgets import QWidget, QApplication
@@ -22,6 +23,8 @@ class gameBoardDisplay(QWidget):
         self.gameBoard=gameBoard
         self.nextHighlightedBox=0
         self.algoHighlightedBoxes=[]
+        self.newHalvingBoxes = []
+        self.newUnexpectedClusterBoxes = []
         
     def initUI(self,gameBoard):      
 
@@ -40,6 +43,12 @@ class gameBoardDisplay(QWidget):
     def HighlightAlgoBoxes(self,algoHighlightedBoxes):
         self.algoHighlightedBoxes=algoHighlightedBoxes
 
+    def PaintBoxesWhichCauseNewHalvings(self, newHalvingBoxes):
+        self.newHalvingBoxes = newHalvingBoxes
+    
+    def PaintBoxesWhichCauseUnexpectedClusters(self, newUnexpectedClusterBoxes):
+        self.newUnexpectedClusterBoxes = newUnexpectedClusterBoxes
+
     def paintEvent(self, e):
 
         qp = QPainter()
@@ -47,13 +56,21 @@ class gameBoardDisplay(QWidget):
 
         self.drawBackground(qp)
 
-        for boxindex,box in enumerate(self.gameBoard.box):
-            self.drawBox(qp,box.x,box.y,box.width,box.height,boxindex,box.points)
-            if (boxindex==self.nextHighlightedBox) and (boxindex in self.algoHighlightedBoxes):
+        for boxIndex,box in enumerate(self.gameBoard.box):
+            if (boxIndex in self.newHalvingBoxes) and (boxIndex in self.newUnexpectedClusterBoxes):
+                self.drawBox(qp,box.x,box.y,box.width,box.height,boxIndex,box.points,QColor(150, 150, 0))
+            elif (boxIndex in self.newHalvingBoxes):
+                self.drawBox(qp,box.x,box.y,box.width,box.height,boxIndex,box.points,QColor(0, 150, 0))
+            elif (boxIndex in self.newUnexpectedClusterBoxes):
+                self.drawBox(qp,box.x,box.y,box.width,box.height,boxIndex,box.points,QColor(150, 0, 0))
+            else:
+                self.drawBox(qp,box.x,box.y,box.width,box.height,boxIndex,box.points,QColor(150, 150, 150))
+
+            if (boxIndex==self.nextHighlightedBox) and (boxIndex in self.algoHighlightedBoxes):
                 self.drawBoxHighlight(qp,box.x,box.y,box.width,box.height,Qt.green)
-            elif boxindex==self.nextHighlightedBox:
+            elif boxIndex==self.nextHighlightedBox:
                 self.drawBoxHighlight(qp,box.x,box.y,box.width,box.height,Qt.red)
-            elif boxindex in self.algoHighlightedBoxes:
+            elif boxIndex in self.algoHighlightedBoxes:
                 self.drawBoxHighlight(qp,box.x,box.y,box.width,box.height,Qt.blue)
 
         qp.end()
@@ -68,11 +85,11 @@ class gameBoardDisplay(QWidget):
         rect1=QRect(0, 0, self.minimumTileSize*self.gameBoard.width, self.minimumTileSize*self.gameBoard.height)
         qp.drawRect(rect1)  
 
-    def drawBox(self,qp,x,y,width,height,index,points):
+    def drawBox(self,qp,x,y,width,height,index,points,color):
         
         brush = QBrush()
         brush.setStyle(Qt.SolidPattern)
-        brush.setColor(QColor(150, 150, 150))
+        brush.setColor(color)
         qp.setBrush(brush)
 
         pen = QPen(Qt.black, 2, Qt.SolidLine)
@@ -101,7 +118,6 @@ class gameBoardDisplay(QWidget):
         rect1=QRect(x*self.minimumTileSize, y*self.minimumTileSize, width*self.minimumTileSize, height*self.minimumTileSize)
         qp.drawRect(rect1)
 
-
 ##########################################
 def replaySequence(graphicalDisplay,sequence):
 ##########################################
@@ -125,6 +141,14 @@ def replaySequence(graphicalDisplay,sequence):
 
         graphicalDisplay.HighlightNextBox(nextMove)
         graphicalDisplay.HighlightAlgoBoxes(best_indices)
+        newHalvingOptions = []
+        unexpectedClusterOptions = []
+        for boxIndex in moveOptions:
+            if doesPointBlockCauseNewHalving(gameBoard, boxIndex): newHalvingOptions.append(boxIndex)
+            if doesUnexpectedClusterForm(gameBoard, boxIndex): unexpectedClusterOptions.append(boxIndex)
+        graphicalDisplay.PaintBoxesWhichCauseNewHalvings(newHalvingOptions)
+        graphicalDisplay.PaintBoxesWhichCauseUnexpectedClusters(unexpectedClusterOptions)
+
         graphicalDisplay.Update(gameBoard)
         
         userinput=input("Press any key to continue")

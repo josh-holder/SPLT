@@ -52,12 +52,13 @@ If these last two output files already exist, they are appended to rather than o
 import sys 
 import math
 import os
-import core
+import core_update as core
 import multiprocessing
 import copy
 import random
 import datetime
 import time
+from weighted_random import playSplitWeighted
 
 seedSequence=[]
 
@@ -91,11 +92,11 @@ def playSplitRandomly(gameBoard):
 		nextMove=random.choice(moveOptions)
 
 
-		core.makeMove(gameBoard,nextMove)
+		core.makeMove(gameBoard,nextMove,calcWeights=False)
 
 
 ##########################################
-def PlayGames(saveLabel,startSequence,rewindDepth,gamesPerBatch,rewindStep,rewindThreshold,scalingFactor):
+def PlayGames(saveLabel,startSequence,rewindDepth,gamesPerBatch,rewindStep,rewindThreshold,scalingFactor,randomFunction):
 	# Play many games of SPL-T, usually from a re-wound state rather than a clean board
 ##########################################
 
@@ -142,7 +143,7 @@ def PlayGames(saveLabel,startSequence,rewindDepth,gamesPerBatch,rewindStep,rewin
 		gameBoard=copy.deepcopy(StartingBoard)
 
 		# Play
-		score,path=playSplitRandomly(gameBoard)
+		score,path=randomFunction(gameBoard)
 
 		# Save the results to buffer
 		paths.append(path)
@@ -162,6 +163,7 @@ def PlayGames(saveLabel,startSequence,rewindDepth,gamesPerBatch,rewindStep,rewin
 		saveFile.write("{0}\t{1}\n".format(scores[index],pathLengths[index]))
 	saveFile.close()
 
+
 ##########################################
 def loadDataFromPreviousRun():
 	# Pull in data from a previous run of playScript5 by reading the [meta] output files
@@ -170,30 +172,30 @@ def loadDataFromPreviousRun():
 	bestSequencesLengths=[]
 	winningSequence=[]
 
+	try:
+		saveFileName="sequences/combo1021.txt"
+		
+		saveFile=open(saveFileName,'r')
+		for line in saveFile:
+			data=line.rstrip('\n').split("\t")
+			bestSequencesLengths.append(int(data[0]))
+			data[1]= ''.join(c for c in data[1] if c not in '[] ')
+			path=data[1].split(",")
+			for index,element in enumerate(path):
+				path[index]=int(element)
+			bestSequences.append(path)
+		saveFile.close()
 
-	saveFileName="sequences/combo1021.txt"
-	
-	saveFile=open(saveFileName,'r')
-	for line in saveFile:
-		data=line.rstrip('\n').split("\t")
-		bestSequencesLengths.append(int(data[0]))
-		data[1]= ''.join(c for c in data[1] if c not in '[] ')
-		path=data[1].split(",")
-		for index,element in enumerate(path):
-			path[index]=int(element)
-		bestSequences.append(path)
-	saveFile.close()
+		maxSequenceLength=int(max(bestSequencesLengths))
+		bestSequencesIndex=bestSequencesLengths.index(max(bestSequencesLengths))
+		winningSequence=bestSequences[bestSequencesIndex]
 
-	maxSequenceLength=int(max(bestSequencesLengths))
-	bestSequencesIndex=bestSequencesLengths.index(max(bestSequencesLengths))
-	winningSequence=bestSequences[bestSequencesIndex]	
+	except FileNotFoundError:
 
-	# except FileNotFoundError:
-
-	# 	print("No save files found - we must not be resuming a prior run")
-	# 	bestSequences=[0]
-	# 	bestSequencesLengths=[0]
-	# 	winningSequence=[0]
+		print("No save files found - we must not be resuming a prior run")
+		bestSequences=[0]
+		bestSequencesLengths=[0]
+		winningSequence=[0]
 
 	return bestSequences,bestSequencesLengths,winningSequence
 
@@ -217,7 +219,7 @@ if __name__ == '__main__':
 	print("\nCPU cores available=",numCores)    
 
 	saveLabelList=['a','b','c','d','e','f','g','h','i','j','k','l']
-
+	saveLabelList=['wra','wrb']
 
 	print("Reading existing savefiles (if any)...")
 	bestSequences,bestSequencesLengths,winningSequence = loadDataFromPreviousRun()
@@ -229,7 +231,7 @@ if __name__ == '__main__':
 
 	metaSaveFileName="[playScript05meta].txt"
 	metaBestSequences="[playScript05metaBestSequences].txt"
-	metaTimevsSequence = "[playScript05Comparison].txt"
+	metaTimevsSequence = "[playScript05Comparisonwr].txt"
 
 	if not os.path.isfile(metaSaveFileName):
 		saveFile=open(metaSaveFileName,'w')
@@ -245,7 +247,8 @@ if __name__ == '__main__':
 	while True:
 		jobs=[]
 		for index in range(numCores//2):
-			process = multiprocessing.Process(target=PlayGames, args=(saveLabelList[index],winningSequence,rewindDepth,gamesPerBatch,rewindStep,rewindThreshold,scalingFactor,))
+			randomFunction = playSplitWeighted
+			process = multiprocessing.Process(target=PlayGames, args=(saveLabelList[index],winningSequence,rewindDepth,gamesPerBatch,rewindStep,rewindThreshold,scalingFactor,randomFunction))
 			jobs.append(process)
 			process.start()
 
